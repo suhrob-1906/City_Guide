@@ -1,0 +1,46 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Favorite {
+  id         String   @id @default(cuid())
+  clientId   String   // Random ID stored in cookie (no auth in MVP)
+  citySlug   String
+  poiOsmId   String
+  poiType    String
+  name       String
+  lat        Float
+  lon        Float
+  tagsJson   String   @db.Text
+  createdAt  DateTime @default(now())
+
+  @@index([clientId])
+  @@index([citySlug])
+}
+
+model ApiLog {
+  id         String   @id @default(cuid())
+  endpoint   String
+  provider   String
+  status     Int
+  latencyMs  Int
+  cached     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([endpoint])
+  @@index([createdAt])
+}
+
+model CacheEntry {
+  key        String   @id
+  valueJson  String   @db.Text
+  expiresAt  DateTime
+  updatedAt  DateTime @updatedAt
+
+  @@index([expiresAt])
+}

@@ -1,0 +1,165 @@
+export interface City {
+    slug: string;
+    name: string;
+    nameRu: string;
+    lat: number;
+    lon: number;
+    bbox: [number, number, number, number]; // [minLon, minLat, maxLon, maxLat]
+}
+
+export const CITIES: City[] = [
+    {
+        slug: 'tashkent',
+        name: 'Tashkent',
+        nameRu: 'Ташкент',
+        lat: 41.3111,
+        lon: 69.2797,
+        bbox: [69.1, 41.2, 69.4, 41.4],
+    },
+    {
+        slug: 'samarkand',
+        name: 'Samarkand',
+        nameRu: 'Самарканд',
+        lat: 39.6542,
+        lon: 66.9597,
+        bbox: [66.85, 39.6, 67.05, 39.7],
+    },
+    {
+        slug: 'bukhara',
+        name: 'Bukhara',
+        nameRu: 'Бухара',
+        lat: 39.7747,
+        lon: 64.4286,
+        bbox: [64.35, 39.72, 64.5, 39.82],
+    },
+    {
+        slug: 'andijan',
+        name: 'Andijan',
+        nameRu: 'Андижан',
+        lat: 40.7821,
+        lon: 72.3442,
+        bbox: [72.25, 40.7, 72.45, 40.85],
+    },
+    {
+        slug: 'namangan',
+        name: 'Namangan',
+        nameRu: 'Наманган',
+        lat: 41.0011,
+        lon: 71.6683,
+        bbox: [71.55, 40.9, 71.75, 41.1],
+    },
+    {
+        slug: 'fergana',
+        name: 'Fergana',
+        nameRu: 'Фергана',
+        lat: 40.3864,
+        lon: 71.7864,
+        bbox: [71.7, 40.3, 71.9, 40.45],
+    },
+    {
+        slug: 'kokand',
+        name: 'Kokand',
+        nameRu: 'Коканд',
+        lat: 40.5286,
+        lon: 70.9425,
+        bbox: [70.85, 40.45, 71.05, 40.6],
+    },
+    {
+        slug: 'nukus',
+        name: 'Nukus',
+        nameRu: 'Нукус',
+        lat: 42.4531,
+        lon: 59.6103,
+        bbox: [59.5, 42.35, 59.7, 42.55],
+    },
+    {
+        slug: 'urgench',
+        name: 'Urgench',
+        nameRu: 'Ургенч',
+        lat: 41.5344,
+        lon: 60.6247,
+        bbox: [60.5, 41.45, 60.75, 41.6],
+    },
+    {
+        slug: 'khiva',
+        name: 'Khiva',
+        nameRu: 'Хива',
+        lat: 41.3814,
+        lon: 60.3611,
+        bbox: [60.25, 41.3, 60.45, 41.45],
+    },
+    {
+        slug: 'termez',
+        name: 'Termez',
+        nameRu: 'Термез',
+        lat: 37.2170,
+        lon: 67.2830,
+        bbox: [67.2, 37.15, 67.35, 37.3],
+    },
+    {
+        slug: 'qarshi',
+        name: 'Qarshi',
+        nameRu: 'Карши',
+        lat: 38.8670,
+        lon: 65.8000,
+        bbox: [65.7, 38.8, 65.9, 38.95],
+    },
+    {
+        slug: 'navoi',
+        name: 'Navoi',
+        nameRu: 'Навои',
+        lat: 40.0844,
+        lon: 65.3792,
+        bbox: [65.3, 40.0, 65.5, 40.15],
+    },
+    {
+        slug: 'zarafshan',
+        name: 'Zarafshan',
+        nameRu: 'Зарафшан',
+        lat: 41.5744,
+        lon: 64.1833,
+        bbox: [64.1, 41.5, 64.3, 41.65],
+    },
+    {
+        slug: 'jizzakh',
+        name: 'Jizzakh',
+        nameRu: 'Джизак',
+        lat: 40.1158,
+        lon: 67.8422,
+        bbox: [67.75, 40.05, 67.95, 40.2],
+    },
+    {
+        slug: 'guliston',
+        name: 'Guliston',
+        nameRu: 'Гулистан',
+        lat: 40.4897,
+        lon: 68.7842,
+        bbox: [68.7, 40.4, 68.9, 40.6],
+    },
+    {
+        slug: 'angren',
+        name: 'Angren',
+        nameRu: 'Ангрен',
+        lat: 41.0084,
+        lon: 70.0741,
+        bbox: [70.0, 40.95, 70.2, 41.1],
+    },
+    {
+        slug: 'chirchiq',
+        name: 'Chirchiq',
+        nameRu: 'Чирчик',
+        lat: 41.4689,
+        lon: 69.5822,
+        bbox: [69.5, 41.4, 69.7, 41.55],
+    },
+    {
+        slug: 'almalyk',
+        name: 'Almalyk',
+        nameRu: 'Алмалык',
+        lat: 40.8447,
+        lon: 69.5983,
+        bbox: [69.5, 40.75, 69.7, 40.95],
+    },
+];
+
+export const getCityBySlug = (slug: string) => CITIES.find((c) => c.slug === slug);

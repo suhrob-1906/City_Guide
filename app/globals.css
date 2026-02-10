@@ -1,0 +1,129 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+        --background: 0 0% 100%;
+        --foreground: 222.2 84% 4.9%;
+
+        --card: 0 0% 100%;
+        --card-foreground: 222.2 84% 4.9%;
+
+        --popover: 0 0% 100%;
+        --popover-foreground: 222.2 84% 4.9%;
+
+        --primary: 222.2 47.4% 11.2%;
+        --primary-foreground: 210 40% 98%;
+
+        --secondary: 210 40% 96.1%;
+        --secondary-foreground: 222.2 47.4% 11.2%;
+
+        --muted: 210 40% 96.1%;
+        --muted-foreground: 215.4 16.3% 46.9%;
+
+        --accent: 210 40% 96.1%;
+        --accent-foreground: 222.2 47.4% 11.2%;
+
+        --destructive: 0 84.2% 60.2%;
+        --destructive-foreground: 210 40% 98%;
+
+        --border: 214.3 31.8% 91.4%;
+        --input: 214.3 31.8% 91.4%;
+        --ring: 222.2 84% 4.9%;
+
+        --radius: 0.5rem;
+    }
+
+    body {
+        @apply bg-background text-foreground;
+        position: relative;
+    }
+
+    body::before {
+        content: "";
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -1;
+        /* Premium Green-Blue-White Aurora Gradient */
+        background: linear-gradient(125deg,
+                #ffffff 0%,
+                #e0f2fe 25%,
+                /* Sky-100 */
+                #d1fae5 50%,
+                /* Emerald-100 */
+                #ecfccb 75%,
+                /* Lime-100 */
+                #ffffff 100%);
+        background-size: 400% 400%;
+        animation: aurora 20s ease infinite;
+        opacity: 0.8;
+    }
+
+    @keyframes aurora {
+        0% {
+            background-position: 0% 50%;
+        }
+
+        50% {
+            background-position: 100% 50%;
+        }
+
+        100% {
+            background-position: 0% 50%;
+        }
+    }
+}
+
+@layer utilities {
+    .glass {
+        @apply bg-white/70 backdrop-blur-xl backdrop-saturate-150 border border-white/50 shadow-lg transition-all duration-300;
+    }
+
+    .glass:hover {
+        @apply bg-white/85 shadow-xl scale-[1.01] border-white/60;
+    }
+}
+
+/* Map Markers */
+.marker-droplet {
+    width: 30px;
+    height: 30px;
+    border-radius: 50% 50% 50% 0;
+    transform: rotate(-45deg);
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    margin-top: -15px;
+    /* Offset to align tip to coordinate */
+}
+
+.marker-icon {
+    transform: rotate(45deg);
+    /* Counter-rotate icon to be upright */
+    font-size: 16px;
+    margin-bottom: 2px;
+    /* Small tweak for optical center */
+}
+
+/* Popup Customization */
+.maplibregl-popup-content {
+    @apply rounded-xl border border-white/20 bg-gray-900/90 backdrop-blur-md text-white shadow-xl !important;
+    padding: 0 !important;
+}
+
+.maplibregl-popup-close-button {
+    @apply text-white/70 hover:text-white !important;
+    font-size: 20px !important;
+    display: none;
+    /* Hide close button for cleaner look? or keep it? */
+}
+
+.maplibregl-popup-tip {
+    border-top-color: rgba(17, 24, 39, 0.9) !important;
+}
