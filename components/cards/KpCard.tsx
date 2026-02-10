@@ -10,28 +10,6 @@ import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 
 
 interface KpData {
-    kpIndex: number; // Changed from kp to match new interface, or map it
-    kp?: number; // Keep for backward compat if needed, or better, just use one. Fetcher returns kpIndex. 
-    // Wait, the fetcher returns `kpIndex` but the old component used `kp`.
-    // Let's check the fetcher again. 
-    // The fetcher returns `{ kpIndex: kp, ... }`. 
-    // The previous component used `data.kp`.
-    // The previous fetcher returned `{ kpIndex: ... }`? 
-    // Let's look at `noaa.ts` again. 
-    // Original `noaa.ts` returned `kpIndex`. 
-    // Old `KpCard.tsx` used `data.kp`. 
-    // If `data.kp` worked, then `fetchKpIndex` must have returned `kp`.
-    // Let's check `noaa.ts` content I read earlier.
-    // Line 19: `return { kpIndex: kp, ... }`.
-    // So `data.kp` in KpCard might have been undefined or I missed something?
-    // Ah, `KpCard` line 95: `<div className="text-4xl font-bold">{data.kp}</div>`.
-    // If `fetchKpIndex` returns `kpIndex`, then `data.kp` would be undefined.
-    // Maybe the API route or something else renamed it?
-    // `api/kp/route.ts` returns `NextResponse.json(data)`.
-    // So it returns whatever `fetchKpIndex` returns.
-    // I should fix the interface to match `fetchKpIndex` output: `kpIndex`.
-    // And `history`.
-
     kpIndex: number;
     level: string;
     color: string;
