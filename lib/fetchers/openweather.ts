@@ -53,8 +53,8 @@ export async function fetchAirQualityForecast(lat: number, lon: number): Promise
 }
 
 function getAqiLabel(aqi: number): string {
-    const labels = ['Good', 'Fair', 'Moderate', 'Poor', 'Very Poor'];
-    return labels[aqi - 1] || 'Unknown';
+    const labels = ['good', 'fair', 'moderate', 'poor', 'very_poor'];
+    return labels[aqi - 1] || 'unknown';
 }
 
 function getAqiColor(aqi: number): string {

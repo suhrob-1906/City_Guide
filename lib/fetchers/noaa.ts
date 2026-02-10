@@ -42,12 +42,12 @@ export async function fetchKpIndex(): Promise<KpData> {
 }
 
 function getKpLevel(kp: number): string {
-    if (kp < 4) return 'Quiet';
-    if (kp < 5) return 'Unsettled';
-    if (kp < 6) return 'Active';
-    if (kp < 7) return 'Minor Storm';
-    if (kp < 8) return 'Moderate Storm';
-    return 'Strong Storm';
+    if (kp < 4) return 'quiet';
+    if (kp < 5) return 'unsettled';
+    if (kp < 6) return 'active';
+    if (kp < 7) return 'storm';
+    if (kp < 8) return 'severe';
+    return 'severe';
 }
 
 function getKpColor(kp: number): string {
@@ -59,7 +59,7 @@ function getKpColor(kp: number): string {
 }
 
 function getKpDescription(kp: number): string {
-    if (kp < 4) return 'Normal geomagnetic conditions';
-    if (kp < 6) return 'Minor geomagnetic disturbances';
-    return 'Geomagnetic storm in progress';
+    if (kp < 4) return 'normal';
+    if (kp < 6) return 'minor';
+    return 'storm';
 }

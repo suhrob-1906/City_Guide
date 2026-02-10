@@ -7,7 +7,7 @@ import { useLanguage } from '@/lib/language';
 import Link from 'next/link';
 import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 
-import ChartComponent from '@/components/ui/ChartComponent';
+
 
 interface AirQualityData {
     aqi: number;
@@ -32,7 +32,7 @@ export default function AirQualityCard({ city }: { city: string }) {
                 setLoading(true);
                 setError(null);
                 // Fetch with forecast
-                const res = await fetch(`/api/air?city=${city}&type=forecast`);
+                const res = await fetch(`/api/air?city=${city}`);
 
                 if (res.status === 429) {
                     setError(t('map.rateLimit'));
@@ -59,11 +59,11 @@ export default function AirQualityCard({ city }: { city: string }) {
 
     const getLocalizedLabel = (label: string) => {
         const labelMap: Record<string, string> = {
-            'Good': t('air.good'),
-            'Fair': t('air.fair'),
-            'Moderate': t('air.moderate'),
-            'Poor': t('air.poor'),
-            'Very Poor': t('air.veryPoor'),
+            'good': t('air.good'),
+            'fair': t('air.fair'),
+            'moderate': t('air.moderate'),
+            'poor': t('air.poor'),
+            'very_poor': t('air.veryPoor'),
         };
         return labelMap[label] || label;
     };
@@ -120,7 +120,7 @@ export default function AirQualityCard({ city }: { city: string }) {
                             <span className="text-xs text-yellow-600">⚠️ {t('air.stale')}</span>
                         )}
                         <span className="opacity-0 group-hover:opacity-100 transition-opacity text-blue-500 text-sm">
-                            View Details →
+                            {t('map.viewDetails')} →
                         </span>
                     </CardTitle>
                 </CardHeader>
@@ -137,19 +137,6 @@ export default function AirQualityCard({ city }: { city: string }) {
                             {getLocalizedLabel(data.label)}
                         </div>
                     </div>
-
-                    {data.forecast && (
-                        <div className="mt-4">
-                            <div className="text-xs text-gray-500 mb-2 font-medium">{t('air.forecast')}</div>
-                            <ChartComponent
-                                data={data.forecast}
-                                dataKey="aqi"
-                                color={data.color}
-                                height={100}
-                                label={t('air.legend')}
-                            />
-                        </div>
-                    )}
 
                     <div className="text-xs text-gray-500 mt-2">
                         {t('air.updated')}: {new Date(data.measuredAt).toLocaleString()}

@@ -92,8 +92,8 @@ export default function WeatherPage() {
                                     <div className="text-8xl font-bold text-gray-800 tracking-tighter">
                                         {Math.round(data.temperature)}°
                                     </div>
-                                    <p className="text-2xl text-gray-600 font-medium mt-2 capitalize">{data.description}</p>
-                                    <p className="text-gray-500 mt-1">Feels like {data.feelsLike}°</p>
+                                    <p className="text-2xl text-gray-600 font-medium mt-2 capitalize">{t(data.description)}</p>
+                                    <p className="text-gray-500 mt-1">{t('weather.feelsLike')} {data.feelsLike}°</p>
                                 </div>
                                 <div className="text-9xl animate-bounce-slow filter drop-shadow-xl">
                                     {data.icon}
@@ -101,24 +101,24 @@ export default function WeatherPage() {
                                 <div className="grid grid-cols-2 gap-4 w-full md:w-auto">
                                     <div className="glass bg-white/50 p-4 rounded-2xl flex flex-col items-center">
                                         <Droplets className="w-6 h-6 text-blue-500 mb-1" />
-                                        <span className="text-sm text-gray-500">Humidity</span>
+                                        <span className="text-sm text-gray-500">{t('weather.humidity')}</span>
                                         <span className="font-bold">{data.humidity}%</span>
                                     </div>
                                     <div className="glass bg-white/50 p-4 rounded-2xl flex flex-col items-center">
                                         <Wind className="w-6 h-6 text-blue-500 mb-1" />
-                                        <span className="text-sm text-gray-500">Wind</span>
-                                        <span className="font-bold">{data.windSpeed} km/h</span>
+                                        <span className="text-sm text-gray-500">{t('weather.wind')}</span>
+                                        <span className="font-bold">{data.windSpeed} {t('weather.kmh')}</span>
                                     </div>
                                     <div className="glass bg-white/50 p-4 rounded-2xl flex flex-col items-center col-span-2">
                                         {isRaining ? (
                                             <div className="flex items-center gap-2 text-blue-600">
                                                 <CloudRain className="w-5 h-5" />
-                                                <span className="font-bold">Rain Expected</span>
+                                                <span className="font-bold">{t('weather.rainExpected')}</span>
                                             </div>
                                         ) : (
                                             <div className="flex items-center gap-2 text-green-600">
                                                 <Thermometer className="w-5 h-5" />
-                                                <span className="font-bold">No Rain</span>
+                                                <span className="font-bold">{t('weather.noRain')}</span>
                                             </div>
                                         )}
                                     </div>
@@ -131,7 +131,7 @@ export default function WeatherPage() {
                             <div className="glass rounded-3xl p-6">
                                 <div className="flex items-center gap-2 mb-4 text-gray-700">
                                     <Clock className="w-5 h-5" />
-                                    <h2 className="text-xl font-bold">Hourly Forecast</h2>
+                                    <h2 className="text-xl font-bold">{t('weather.hourly')}</h2>
                                 </div>
                                 <div className="flex overflow-x-auto pb-4 gap-4 no-scrollbar">
                                     {data.hourly.time.slice(0, 24).map((time, i) => (
@@ -154,7 +154,7 @@ export default function WeatherPage() {
                             <div className="glass rounded-3xl p-6">
                                 <div className="flex items-center gap-2 mb-6 text-gray-700">
                                     <Calendar className="w-5 h-5" />
-                                    <h2 className="text-xl font-bold">10-Day Forecast</h2>
+                                    <h2 className="text-xl font-bold">{t('weather.daily')}</h2>
                                 </div>
                                 <div className="space-y-4">
                                     {data.daily.time.map((time, i) => (

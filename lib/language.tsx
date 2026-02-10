@@ -65,8 +65,17 @@ const translations = {
         'kp.active': 'Active',
         'kp.storm': 'Storm',
         'kp.severe': 'Severe Storm',
+        'kp.desc.normal': 'Normal geomagnetic conditions',
+        'kp.desc.minor': 'Minor geomagnetic disturbances',
+        'kp.desc.storm': 'Geomagnetic storm in progress',
         'kp.forecast': '24h Forecast',
         'kp.legend': 'Kp Index',
+        'kp.subtitle': 'Planetary K-index',
+        'kp.whatIs': 'What is Kp Index?',
+        'kp.descriptionLong': 'The K-index quantifies disturbances in the horizontal component of earth\'s magnetic field. Values below 3 are calm, while 5 or higher indicates a storm.',
+        'kp.scale.quiet': 'Quiet (0-2)',
+        'kp.scale.unsettled': 'Unsettled (3)',
+        'kp.scale.storm': 'Storm (5+)',
 
         // Air quality card
         'air.title': 'Air Quality',
@@ -83,6 +92,13 @@ const translations = {
         'air.veryPoor': 'Very Poor',
         'air.forecast': 'Forecast',
         'air.legend': 'AQI Index',
+        'air.subtitle': 'Air Quality Index (AQI)',
+        'air.health': 'Health Implication',
+        'air.goodDesc': 'Air quality is considered satisfactory, and air pollution poses little or no risk.',
+        'air.poorDesc': 'Members of sensitive groups may experience health effects. The general public is not likely to be affected.',
+        'air.scale.good': 'Good (1)',
+        'air.scale.moderate': 'Moderate (3)',
+        'air.scale.hazardous': 'Hazardous (5)',
 
         // Map
         'map.title': 'Points of Interest',
@@ -97,6 +113,30 @@ const translations = {
         'map.loading': 'Loading POI data...',
         'map.rateLimit': 'Please wait before refreshing',
         'map.seconds': 's',
+        'map.viewDetails': 'View Details',
+
+        // Weather
+        'weather.feelsLike': 'Feels like',
+        'weather.humidity': 'Humidity',
+        'weather.wind': 'Wind',
+        'weather.rainExpected': 'Rain Expected',
+        'weather.noRain': 'No Rain',
+        'weather.hourly': 'Hourly Forecast',
+        'weather.daily': '10-Day Forecast',
+        'weather.error': 'Unable to load weather data',
+        'weather.kmh': 'km/h',
+
+        // Weather conditions
+        'weather.clear': 'Clear sky',
+        'weather.mainly_clear': 'Mainly clear',
+        'weather.partly_cloudy': 'Partly cloudy',
+        'weather.overcast': 'Overcast',
+        'weather.fog': 'Foggy',
+        'weather.drizzle': 'Drizzle',
+        'weather.rain': 'Rain',
+        'weather.snow': 'Snow',
+        'weather.showers': 'Showers',
+        'weather.thunderstorm': 'Thunderstorm',
 
         // Data sources
         'sources.title': 'Data Sources',
@@ -159,8 +199,17 @@ const translations = {
         'kp.active': 'Активно',
         'kp.storm': 'Буря',
         'kp.severe': 'Сильная буря',
+        'kp.desc.normal': 'Геомагнитная обстановка спокойная',
+        'kp.desc.minor': 'Небольшие геомагнитные возмущения',
+        'kp.desc.storm': 'Геомагнитная буря',
         'kp.forecast': 'Прогноз на 24 часа',
         'kp.legend': 'Индекс Kp',
+        'kp.subtitle': 'Планетарный K-индекс',
+        'kp.whatIs': 'Что такое Kp-индекс?',
+        'kp.descriptionLong': 'K-индекс количественно определяет возмущения горизонтальной составляющей магнитного поля Земли. Значения ниже 3 — спокойные, а 5 и выше указывают на магнитную бурю.',
+        'kp.scale.quiet': 'Спокойно (0-2)',
+        'kp.scale.unsettled': 'Неспокойно (3)',
+        'kp.scale.storm': 'Буря (5+)',
 
         // Air quality card
         'air.title': 'Качество воздуха',
@@ -177,6 +226,13 @@ const translations = {
         'air.veryPoor': 'Очень плохо',
         'air.forecast': 'Прогноз',
         'air.legend': 'Индекс AQI',
+        'air.subtitle': 'Индекс качества воздуха (AQI)',
+        'air.health': 'Влияние на здоровье',
+        'air.goodDesc': 'Качество воздуха считается удовлетворительным, загрязнение не представляет риска.',
+        'air.poorDesc': 'Люди из групп риска могут испытать ухудшение здоровья. Для остальных риск невелик.',
+        'air.scale.good': 'Хорошо (1)',
+        'air.scale.moderate': 'Умеренно (3)',
+        'air.scale.hazardous': 'Опасно (5)',
 
         // Map
         'map.title': 'Точки интереса',
@@ -191,6 +247,30 @@ const translations = {
         'map.loading': 'Загрузка данных POI...',
         'map.rateLimit': 'Подождите перед обновлением',
         'map.seconds': 'с',
+        'map.viewDetails': 'Подробнее',
+
+        // Weather
+        'weather.feelsLike': 'Ощущается как',
+        'weather.humidity': 'Влажность',
+        'weather.wind': 'Ветер',
+        'weather.rainExpected': 'Ожидается дождь',
+        'weather.noRain': 'Без осадков',
+        'weather.hourly': 'Почасовой прогноз',
+        'weather.daily': 'Прогноз на 10 дней',
+        'weather.error': 'Не удалось загрузить погоду',
+        'weather.kmh': 'км/ч',
+
+        // Weather conditions
+        'weather.clear': 'Ясно',
+        'weather.mainly_clear': 'Преимущественно ясно',
+        'weather.partly_cloudy': 'Переменная облачность',
+        'weather.overcast': 'Пасмурно',
+        'weather.fog': 'Туман',
+        'weather.drizzle': 'Морось',
+        'weather.rain': 'Дождь',
+        'weather.snow': 'Снег',
+        'weather.showers': 'Ливень',
+        'weather.thunderstorm': 'Гроза',
 
         // Data sources
         'sources.title': 'Источники данных',

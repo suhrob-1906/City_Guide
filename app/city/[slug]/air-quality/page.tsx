@@ -8,11 +8,14 @@ import { ArrowLeft, Wind, AlertTriangle, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useLanguage } from '@/lib/language';
 
+import ChartComponent from '@/components/ui/ChartComponent';
+
 interface AirQualityData {
     aqi: number;
     label: string;
     color: string;
     measuredAt: string;
+    forecast?: { time: string; aqi: number; color: string }[];
 }
 
 export default function AirQualityPage() {
@@ -26,7 +29,8 @@ export default function AirQualityPage() {
         if (!city) return;
         async function fetchData() {
             try {
-                const res = await fetch(`/api/air?city=${city?.slug}`);
+                // Fetch with forecast
+                const res = await fetch(`/api/air?city=${city?.slug}&type=forecast`);
                 if (res.ok) {
                     const json = await res.json();
                     setData(json);
@@ -39,6 +43,17 @@ export default function AirQualityPage() {
         }
         fetchData();
     }, [city]);
+
+    const getLocalizedLabel = (label: string) => {
+        const labelMap: Record<string, string> = {
+            'good': t('air.good'),
+            'fair': t('air.fair'),
+            'moderate': t('air.moderate'),
+            'poor': t('air.poor'),
+            'very_poor': t('air.veryPoor'),
+        };
+        return labelMap[label] || label;
+    };
 
     if (!city) return null;
 
@@ -64,7 +79,7 @@ export default function AirQualityPage() {
                         </div>
                         <div>
                             <h1 className="text-2xl font-bold">{t('air.title')}</h1>
-                            <p className="text-gray-500">Air Quality Index (AQI)</p>
+                            <p className="text-gray-500">{t('air.subtitle')}</p>
                         </div>
                     </div>
 
@@ -82,16 +97,30 @@ export default function AirQualityPage() {
                                     {data.aqi}
                                 </motion.div>
                                 <h2 className="text-2xl font-bold" style={{ color: data.color }}>
-                                    {data.label}
+                                    {getLocalizedLabel(data.label)}
                                 </h2>
                             </div>
+
+                            {/* Chart Visualization */}
+                            {data.forecast && (
+                                <div className="mb-8">
+                                    <h3 className="text-lg font-semibold mb-4">{t('air.forecast')}</h3>
+                                    <ChartComponent
+                                        data={data.forecast}
+                                        dataKey="aqi"
+                                        color={data.color}
+                                        height={200}
+                                        label={t('air.legend')}
+                                    />
+                                </div>
+                            )}
 
                             {/* Scale Visualization */}
                             <div className="mb-8">
                                 <div className="flex justify-between text-xs text-gray-400 mb-2">
-                                    <span>Good (1)</span>
-                                    <span>Moderate (3)</span>
-                                    <span>Hazardous (5)</span>
+                                    <span>{t('air.scale.good')}</span>
+                                    <span>{t('air.scale.moderate')}</span>
+                                    <span>{t('air.scale.hazardous')}</span>
                                 </div>
                                 <div className="h-4 rounded-full bg-gray-200 overflow-hidden flex relative">
                                     <div className="w-1/5 h-full bg-green-500"></div>
@@ -112,10 +141,10 @@ export default function AirQualityPage() {
                                 <div className="flex items-start gap-3">
                                     {data.aqi <= 2 ? <CheckCircle className="w-5 h-5 text-green-500 mt-1" /> : <AlertTriangle className="w-5 h-5 text-yellow-500 mt-1" />}
                                     <div className="text-sm text-gray-600">
-                                        <p className="font-semibold text-gray-900 mb-1">Health Implication</p>
+                                        <p className="font-semibold text-gray-900 mb-1">{t('air.health')}</p>
                                         {data.aqi <= 2
-                                            ? "Air quality is considered satisfactory, and air pollution poses little or no risk."
-                                            : "Members of sensitive groups may experience health effects. The general public is not likely to be affected."}
+                                            ? t('air.goodDesc')
+                                            : t('air.poorDesc')}
                                     </div>
                                 </div>
                             </div>

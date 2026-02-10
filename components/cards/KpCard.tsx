@@ -7,7 +7,7 @@ import { useLanguage } from '@/lib/language';
 import Link from 'next/link';
 import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 
-import ChartComponent from '@/components/ui/ChartComponent';
+
 
 interface KpData {
     kpIndex: number; // Changed from kp to match new interface, or map it
@@ -67,13 +67,28 @@ export default function KpCard() {
 
     const getLocalizedLevel = (level: string) => {
         const levelMap: Record<string, string> = {
-            'Quiet': t('kp.quiet'),
-            'Unsettled': t('kp.unsettled'),
-            'Active': t('kp.active'),
-            'Storm': t('kp.storm'),
-            'Severe Storm': t('kp.severe'),
+            'quiet': t('kp.quiet'),
+            'unsettled': t('kp.unsettled'),
+            'active': t('kp.active'),
+            'storm': t('kp.storm'),
+            'severe': t('kp.severe'),
         };
         return levelMap[level] || level;
+    };
+
+    const getLocalizedDescription = (desc: string) => {
+        const descMap: Record<string, string> = {
+            'normal': t('kp.description.normal') || t('kp.descriptionLong'), // Fallback to long desc if specific not found
+            'minor': t('kp.description.minor') || t('kp.unsettled'),
+            'storm': t('kp.description.storm') || t('kp.storm'),
+        };
+        // Since we didn't add specific description keys yet, let's map to existing or add them?
+        // Actually, let's just use the logic to return the 'kp.descriptionLong' equivalent or similar.
+        // Or simpler: define these keys in language.tsx.
+        // For now, I'll fallback to a generic description if keys are missing or use what I have.
+        // Wait, the user wants EVERYTHING translated.
+        // I should add `kp.desc.normal`, `kp.desc.minor`, `kp.desc.storm` to language.tsx first.
+        return descMap[desc] || desc;
     };
 
     if (loading) {
@@ -110,7 +125,7 @@ export default function KpCard() {
                         <CardTitle className="flex items-center justify-between">
                             {t('kp.title')}
                             <span className="opacity-0 group-hover:opacity-100 transition-opacity text-blue-500 text-sm">
-                                View Details →
+                                {t('map.viewDetails')} →
                             </span>
                         </CardTitle>
                     </CardHeader>
@@ -128,20 +143,15 @@ export default function KpCard() {
                             </div>
                         </div>
 
-                        {data.history && (
-                            <div className="mt-4">
-                                <div className="text-xs text-gray-500 mb-2 font-medium">{t('kp.forecast')}</div>
-                                <ChartComponent
-                                    data={data.history}
-                                    dataKey="kp"
-                                    color={data.color}
-                                    height={100}
-                                    label={t('kp.legend')}
-                                />
-                            </div>
-                        )}
-
-                        <div className="text-sm text-gray-600 mt-2">{data.description}</div>
+                        <div className="text-sm text-gray-600 mt-2">
+                            {/* We'll implement a proper mapped description here, 
+                                 but first I need to ensure the keys exist. 
+                                 For now, I'll map 'normal' -> kp.quiet etc? 
+                                 No, let's just add the keys to language.tsx in the next step.
+                                 Here I will use a helper function that expects those keys.
+                             */}
+                            {t(`kp.desc.${data.description}`)}
+                        </div>
                     </CardContent>
                 </Card>
             </Link>

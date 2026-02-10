@@ -8,11 +8,14 @@ import { ArrowLeft, Activity, Info } from 'lucide-react';
 import Link from 'next/link';
 import { useLanguage } from '@/lib/language';
 
+import ChartComponent from '@/components/ui/ChartComponent';
+
 interface KpData {
-    kp: number;
+    kpIndex: number;
     level: string;
     color: string;
     description: string;
+    history?: { time: string; kp: number }[];
 }
 
 export default function GeomagneticPage() {
@@ -39,6 +42,17 @@ export default function GeomagneticPage() {
         fetchData();
     }, []);
 
+    const getLocalizedLevel = (level: string) => {
+        const levelMap: Record<string, string> = {
+            'quiet': t('kp.quiet'),
+            'unsettled': t('kp.unsettled'),
+            'active': t('kp.active'),
+            'storm': t('kp.storm'),
+            'severe': t('kp.severe'),
+        };
+        return levelMap[level] || level;
+    };
+
     if (!city) return null;
 
     return (
@@ -63,7 +77,7 @@ export default function GeomagneticPage() {
                         </div>
                         <div>
                             <h1 className="text-2xl font-bold">{t('kp.title')}</h1>
-                            <p className="text-gray-500">Planetary K-index</p>
+                            <p className="text-gray-500">{t('kp.subtitle')}</p>
                         </div>
                     </div>
 
@@ -78,20 +92,36 @@ export default function GeomagneticPage() {
                                     className="inline-flex items-center justify-center w-32 h-32 rounded-full border-8 text-5xl font-bold mb-4 bg-white shadow-lg transition-colors duration-500"
                                     style={{ borderColor: data.color, color: data.color }}
                                 >
-                                    {data.kp}
+                                    {data.kpIndex}
                                 </motion.div>
                                 <h2 className="text-2xl font-bold" style={{ color: data.color }}>
-                                    {data.level}
-                                </h2>
-                                <p className="text-gray-600 mt-2 max-w-md mx-auto">{data.description}</p>
+                                    {getLocalizedLevel(data.level)}
+                                </h2 >
+                                <p className="text-gray-600 mt-2 max-w-md mx-auto">
+                                    {t(`kp.desc.${data.description}`)}
+                                </p>
                             </div>
+
+                            {/* Chart Visualization */}
+                            {data.history && (
+                                <div className="mb-8">
+                                    <h3 className="text-lg font-semibold mb-4">{t('kp.forecast')}</h3>
+                                    <ChartComponent
+                                        data={data.history}
+                                        dataKey="kp"
+                                        color={data.color}
+                                        height={200}
+                                        label={t('kp.legend')}
+                                    />
+                                </div>
+                            )}
 
                             {/* Scale Visualization */}
                             <div className="mb-8">
                                 <div className="flex justify-between text-xs text-gray-400 mb-2">
-                                    <span>Quiet (0-2)</span>
-                                    <span>Unsettled (3)</span>
-                                    <span>Storm (5+)</span>
+                                    <span>{t('kp.scale.quiet')}</span>
+                                    <span>{t('kp.scale.unsettled')}</span>
+                                    <span>{t('kp.scale.storm')}</span>
                                 </div>
                                 <div className="h-4 rounded-full bg-gray-200 overflow-hidden flex relative">
                                     <div className="w-1/3 h-full bg-green-400"></div>
@@ -102,7 +132,7 @@ export default function GeomagneticPage() {
                                     {/* Indicator */}
                                     <div
                                         className="absolute top-0 bottom-0 w-1 bg-black border-2 border-white shadow-lg transition-all duration-1000"
-                                        style={{ left: `${Math.min((data.kp / 9) * 100, 100)}%` }}
+                                        style={{ left: `${Math.min((data.kpIndex / 9) * 100, 100)}%` }}
                                     ></div>
                                 </div>
                             </div>
@@ -111,8 +141,8 @@ export default function GeomagneticPage() {
                                 <div className="flex items-start gap-3">
                                     <Info className="w-5 h-5 text-blue-500 mt-1 flex-shrink-0" />
                                     <div className="text-sm text-gray-600">
-                                        <p className="font-semibold text-gray-900 mb-1">What is Kp Index?</p>
-                                        The K-index quantifies disturbances in the horizontal component of earth&apos;s magnetic field with an integer in the range 0-9. Values below 3 are calm, 4 is active, and 5 or higher indicates a storm.
+                                        <p className="font-semibold text-gray-900 mb-1">{t('kp.whatIs')}</p>
+                                        {t('kp.descriptionLong')}
                                     </div>
                                 </div>
                             </div>
