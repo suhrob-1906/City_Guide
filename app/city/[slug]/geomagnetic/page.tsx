@@ -21,8 +21,11 @@ interface KpData {
 export default function GeomagneticPage() {
     const params = useParams();
     const city = getCityBySlug(params.slug as string);
-    const { t } = useLanguage();
+    const { t, language } = useLanguage(); // Get language
     const [data, setData] = useState<KpData | null>(null);
+
+    // ... (rest of code)
+
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -112,6 +115,7 @@ export default function GeomagneticPage() {
                                         color={data.color}
                                         height={200}
                                         label={t('kp.legend')}
+                                        language={language}
                                     />
                                 </div>
                             )}

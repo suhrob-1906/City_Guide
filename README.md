@@ -1,238 +1,152 @@
-# Uzbek City Helper
+# Uzbek City Helper 🇺🇿
 
-A fullstack Next.js application providing real-time weather, geomagnetic activity, air quality data, and accessible POI mapping for three Uzbek cities: Tashkent, Samarkand, and Bukhara.
+A modern, full-stack Next.js application designed to provide real-time environmental data and accessible location services for major cities in Uzbekistan (Tashkent, Samarkand, Bukhara, and more).
 
-## Features
+![Project Banner](https://via.placeholder.com/1200x600?text=Uzbek+City+Helper+Dashboard)
 
-- **Weather Data**: Real-time weather from Open-Meteo API (temperature, humidity, wind speed)
-- **Geomagnetic Activity**: Kp index from NOAA Space Weather Prediction Center
-- **Air Quality**: Human-friendly AQI levels from OpenWeather API
-- **POI Mapping**: Interactive map with toilets, hospitals, and wheelchair-accessible locations
-- **Smart Caching**: Automatic caching with TTL (in-memory, Upstash Redis, or Postgres)
-- **Rate Limiting**: Protects external APIs from overuse
-- **Stale Cache Fallback**: Shows cached data when APIs are unavailable
-- **Glassmorphism UI**: Modern, premium design with smooth animations
+## 🚀 Features
 
-## Tech Stack
+### 🌤️ Weather Monitoring
+- Real-time weather conditions including temperature, humidity, wind speed, and precipitation.
+- **Detailed Forecasts**: Hourly and 10-day weather forecasts powered by [Open-Meteo](https://open-meteo.com/).
+- **Dynamic Visuals**: Beautifully animated gradients representing current weather conditions.
 
-- **Frontend**: Next.js 14 (App Router), TypeScript, Tailwind CSS, Framer Motion, GSAP
-- **Backend**: Next.js API Routes
-- **Database**: PostgreSQL (Prisma ORM)
-- **Cache**: Upstash Redis (optional, falls back to in-memory)
-- **Map**: MapLibre GL JS with GeoJSON clustering
-- **UI Components**: shadcn/ui
+### 🌌 Geomagnetic Activity (Kp Index)
+- Live geomagnetic storm tracking using data from [NOAA SWPC](https://www.swpc.noaa.gov/).
+- **24-Hour History**: Interactive chart showing Kp index trends over the last day.
+- **Health Advisories**: Clear explanations of what different Kp levels mean for your health and technology.
 
-## Prerequisites
+### 💨 Air Quality (AQI)
+- Comprehensive air quality monitoring with data from [OpenWeatherMap](https://openweathermap.org/).
+- **24-Hour Forecast**: Predictive chart for air quality changes.
+- **Health Recommendations**: Actionable advice based on current pollution levels.
 
+### 🗺️ Accessible Points of Interest (POI)
+- Interactive map to find essential services:
+  - **Restrooms**: Public toilets.
+  - **Hospitals**: Medical facilities.
+  - **Accessibility**: Wheelchair-accessible places.
+- Powered by [OpenStreetMap](https://www.openstreetmap.org/) via Overpass API.
+
+### 🌍 Application Intelligence
+- **Full Localization**: Seamlessly switch between English and Russian languages.
+- **Smart Caching**: Auto-detects environment (Redis vs. In-Memory) to cache API responses and respect rate limits.
+- **Robust Error Handling**: Graceful fallbacks ensure the app works even if external services are temporarily down.
+
+---
+
+## 🛠️ Technology Stack
+
+- **Framework**: [Next.js 14](https://nextjs.org/) (App Router)
+- **Language**: [TypeScript](https://www.typescriptlang.org/)
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/) with [shadcn/ui](https://ui.shadcn.com/) components
+- **Animations**: [Framer Motion](https://www.framer.com/motion/)
+- **Database**: [PostgreSQL](https://www.postgresql.org/) (via [Prisma ORM](https://www.prisma.io/))
+- **Maps**: [MapLibre GL JS](https://maplibre.org/)
+- **Deployment**: Optimized for [Render](https://render.com/) and [Vercel](https://vercel.com/)
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
 - Node.js 20+
-- PostgreSQL database (Render Postgres recommended)
-- OpenWeather API key (for air quality data)
-- Map tiles URL (MapTiler, Maptiler Cloud, or similar)
-- (Optional) Upstash Redis for production caching
+- PostgreSQL database (local or cloud)
+- OpenWeather API Key (free tier works)
 
-## Local Development
+### Local Development
 
-### 1. Install Dependencies
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/your-username/uzbek-city-helper.git
+    cd uzbek-city-helper
+    ```
 
-```bash
-npm install
-```
+2.  **Install dependencies:**
+    ```bash
+    npm install
+    ```
 
-### 2. Configure Environment Variables
+3.  **Configure Environment Variables:**
+    Create a `.env` file in the root directory:
+    ```env
+    # Database (Required for logging, optional for core features)
+    DATABASE_URL="postgresql://user:password@localhost:5432/uzbek_city_helper"
 
-Create a `.env` file based on `.env.example`:
+    # APIs (Required)
+    OPENWEATHER_API_KEY="your_openweather_api_key_here"
 
-```bash
-# Database
-DATABASE_URL="postgresql://user:password@localhost:5432/uzbek_city_helper"
+    # Map Style (Optional - use free demo if needed)
+    NEXT_PUBLIC_MAP_STYLE_URL="https://demotiles.maplibre.org/style.json"
+    
+    # Optional Caching (Upstash Redis)
+    UPSTASH_REDIS_REST_URL=""
+    UPSTASH_REDIS_REST_TOKEN=""
+    ```
 
-# OpenWeather API (required)
-OPENWEATHER_API_KEY="your_openweather_api_key"
+4.  **Listen to the database (Optional):**
+    If you have a database connection:
+    ```bash
+    npx prisma generate
+    npx prisma migrate dev
+    ```
 
-# Map tiles (required)
-NEXT_PUBLIC_MAP_STYLE_URL="https://demotiles.maplibre.org/style.json"
+5.  **Run the development server:**
+    ```bash
+    npm run dev
+    ```
+    Open [http://localhost:3000](http://localhost:3000) to view the app.
 
-# Upstash Redis (optional, recommended for production)
-UPSTASH_REDIS_REST_URL=""
-UPSTASH_REDIS_REST_TOKEN=""
+---
 
-# App URL
-NEXT_PUBLIC_APP_URL="http://localhost:3000"
-```
+## ☁️ Deployment Guide
 
-### 3. Set Up Database
+### Option 1: Deploy to Render (Recommended for Fullstack)
 
-```bash
-# Generate Prisma client
-npx prisma generate
+Render provides excellent support for Next.js and managed PostgreSQL/Redis services.
 
-# Run migrations
-npx prisma migrate dev
-```
+1.  **Database**: Create a new **PostgreSQL** database on Render. Copy the `Internal Database URL`.
+2.  **Web Service**: Create a new **Web Service** connected to your GitHub repo.
+3.  **Configuration**:
+    - **Build Command**: `npm ci && npx prisma generate && npm run build`
+    - **Start Command**: `npm start`
+4.  **Environment Variables**: Add `DATABASE_URL` (from step 1) and `OPENWEATHER_API_KEY`.
 
-### 4. Run Development Server
+### Option 2: Deploy to Vercel (Fastest)
 
-```bash
-npm run dev
-```
+Vercel is the native platform for Next.js.
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+1.  **Import Project**: Connect your GitHub repository to Vercel.
+2.  **Database**: Vercel doesn't host databases, so use **Vercel Postgres**, **Supabase**, or **Neon**. Add the connection string as `DATABASE_URL`.
+3.  **Environment Variables**: Add your `OPENWEATHER_API_KEY` in the dashboard.
+4.  **Deploy**: Click deploy, and your app will be live in minutes.
 
-## Deployment to Render
+---
 
-### 1. Create GitHub Repository
-
-```bash
-git init
-git add .
-git commit -m "Initial commit"
-git remote add origin <your-repo-url>
-git push -u origin main
-```
-
-### 2. Create Render PostgreSQL Database
-
-1. Go to [Render Dashboard](https://dashboard.render.com)
-2. Click "New +" → "PostgreSQL"
-3. Name: `uzbek-city-helper-db`
-4. Copy the **Internal Database URL**
-
-### 3. Create Render Web Service
-
-1. Click "New +" → "Web Service"
-2. Connect your GitHub repository
-3. Configure:
-   - **Name**: `uzbek-city-helper`
-   - **Environment**: `Node`
-   - **Build Command**: `npm ci && npm run build`
-   - **Start Command**: `npm start`
-
-### 4. Configure Environment Variables
-
-In Render Web Service → Environment, add:
+## 📂 Project Structure
 
 ```
-DATABASE_URL=<Internal Database URL from step 2>
-OPENWEATHER_API_KEY=<your key>
-NEXT_PUBLIC_MAP_STYLE_URL=<your map tiles URL>
-UPSTASH_REDIS_REST_URL=<optional>
-UPSTASH_REDIS_REST_TOKEN=<optional>
-NODE_VERSION=20.11.0
+├── app/                  # Next.js App Router pages
+│   ├── api/              # Backend API routes
+│   ├── city/[slug]/      # Dynamic city dashboards
+│   └── globals.css       # Global styles & tailwind imports
+├── components/           # React components
+│   ├── cards/            # Dashboard widgets
+│   ├── map/              # Map visualization
+│   └── ui/               # Reusable UI elements
+├── config/               # Static configuration (Cities, Layers)
+├── lib/                  # Utilities & Business Logic
+│   ├── fetchers/         # External API clients
+│   └── language.tsx      # Application localization
+├── prisma/               # Database schema
+└── public/               # Static assets
 ```
 
-### 5. Deploy
+## 📄 License
 
-Click "Create Web Service". Render will automatically:
-- Install dependencies
-- Run Prisma migrations
-- Build the Next.js app
-- Start the server
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## API Endpoints
+## 🙏 Acknowledgements
 
-| Endpoint | Method | Parameters | TTL | Rate Limit |
-|----------|--------|------------|-----|------------|
-| `/api/weather` | GET | `city` (slug) | 10 min | None |
-| `/api/kp` | GET | None | 30 min | None |
-| `/api/air` | GET | `city` (slug) | 10 min | 1 req/10s |
-| `/api/pois` | GET | `city` (slug), `type` (toilets/hospitals/wheelchair) | 24 hours | 1 req/10s |
-
-## Caching Strategy
-
-The app automatically selects the best caching strategy:
-
-1. **Upstash Redis** (if `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` are set)
-   - Persistent cache across restarts
-   - Recommended for production
-
-2. **In-Memory Cache** (fallback)
-   - Fast, but data lost on restart
-   - Suitable for development
-
-3. **Postgres Cache** (alternative)
-   - Use `CacheEntry` table if Redis is unavailable
-   - Slower than Redis but persistent
-
-## Rate Limiting
-
-- **POI endpoint**: 1 request per 10 seconds per IP (protects Overpass API)
-- **Air quality endpoint**: 1 request per 10 seconds per IP (protects OpenWeather API)
-- Automatically uses Upstash Rate Limit if Redis is configured, otherwise in-memory
-
-## Error Handling
-
-- All API routes implement stale cache fallback
-- If external API fails, returns last cached data with `stale: true` flag
-- UI shows warnings for stale or missing data
-- Graceful degradation ensures app never crashes
-
-## Database Schema
-
-### `Favorite`
-- User-saved POI locations
-- Uses client ID from cookie (no authentication required)
-
-### `ApiLog`
-- Tracks all API calls for monitoring
-- Records endpoint, provider, status, latency, and cache hits
-
-### `CacheEntry`
-- Optional Postgres-based cache
-- Alternative to Redis for persistent caching
-
-## Project Structure
-
-```
-uzbek-city-helper/
-├── app/
-│   ├── api/              # API routes
-│   ├── city/[slug]/      # City dashboard pages
-│   ├── globals.css       # Global styles
-│   ├── layout.tsx        # Root layout
-│   └── page.tsx          # Home page
-├── components/
-│   ├── cards/            # Data cards (Weather, Kp, Air Quality)
-│   ├── map/              # Map components
-│   └── ui/               # shadcn/ui components
-├── config/
-│   ├── cities.ts         # City definitions
-│   └── layers.ts         # POI layer definitions
-├── lib/
-│   ├── fetchers/         # External API fetchers
-│   ├── cache.ts          # Cache layer
-│   ├── rateLimit.ts      # Rate limiting
-│   ├── db.ts             # Prisma client
-│   └── utils.ts          # Utilities
-├── prisma/
-│   └── schema.prisma     # Database schema
-└── package.json
-```
-
-## Troubleshooting
-
-### "Unable to load air quality data"
-- Check that `OPENWEATHER_API_KEY` is correctly set
-- Verify the API key is valid at [OpenWeather](https://openweathermap.org/)
-
-### "Rate limit exceeded"
-- Wait 10 seconds before retrying POI or air quality requests
-- Consider setting up Upstash Redis for better rate limiting
-
-### Map not loading
-- Verify `NEXT_PUBLIC_MAP_STYLE_URL` is correctly configured
-- Check that the map tiles provider is accessible
-
-### Database connection errors
-- Ensure `DATABASE_URL` is correct
-- Run `npx prisma migrate deploy` to apply migrations
-
-## License
-
-MIT
-
-## Credits
-
-- Weather data: [Open-Meteo](https://open-meteo.com/)
-- Geomagnetic data: [NOAA SWPC](https://www.swpc.noaa.gov/)
-- Air quality data: [OpenWeather](https://openweathermap.org/)
-- POI data: [OpenStreetMap](https://www.openstreetmap.org/) via Overpass API
+- **Data Sources**: Open-Meteo, NOAA, OpenWeather, OpenStreetMap.
+- **Icons**: Lucide React.

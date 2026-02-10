@@ -77,10 +77,14 @@ export async function GET(req: NextRequest) {
 
 async function logApi(endpoint: string, provider: string, status: number, latency: number, cached: boolean) {
     try {
-        await prisma.apiLog.create({
+        prisma.apiLog.create({
             data: { endpoint, provider, status, latencyMs: latency, cached },
+        }).catch((e) => {
+            if (process.env.NODE_ENV === 'development') {
+                console.warn('Failed to log API call (DB might be offline):', e.message);
+            }
         });
     } catch (e) {
-        console.error('Failed to log API call:', e);
+        console.error('Failed to initiate logging:', e);
     }
 }

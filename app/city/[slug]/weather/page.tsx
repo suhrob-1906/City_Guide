@@ -23,7 +23,7 @@ function getWeatherIcon(code: number) {
 export default function WeatherPage() {
     const params = useParams();
     const city = getCityBySlug(params.slug as string);
-    const { t } = useLanguage();
+    const { t, language } = useLanguage();
     const [data, setData] = useState<WeatherData | null>(null);
     const [loading, setLoading] = useState(true);
 
@@ -52,13 +52,13 @@ export default function WeatherPage() {
     // Helper to format time
     const formatTime = (isoString: string) => {
         const date = new Date(isoString);
-        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        return date.toLocaleTimeString(language === 'ru' ? 'ru-RU' : 'en-US', { hour: '2-digit', minute: '2-digit' });
     };
 
     // Helper to format day
     const formatDay = (isoString: string) => {
         const date = new Date(isoString);
-        return date.toLocaleDateString([], { weekday: 'short', day: 'numeric' });
+        return date.toLocaleDateString(language === 'ru' ? 'ru-RU' : 'en-US', { weekday: 'short', day: 'numeric' });
     };
 
     return (

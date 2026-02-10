@@ -3,6 +3,7 @@
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { useMemo } from 'react';
 
+// ... imports
 interface ChartProps {
     data: any[];
     dataKey: string;
@@ -10,16 +11,17 @@ interface ChartProps {
     height?: number;
     label?: string;
     unit?: string;
+    language?: string;
 }
 
-export default function ChartComponent({ data, dataKey, color, height = 200, label, unit }: ChartProps) {
+export default function ChartComponent({ data, dataKey, color, height = 200, label, unit, language = 'en' }: ChartProps) {
     const chartData = useMemo(() => {
         if (!data || data.length === 0) return [];
         return data.map(item => ({
             ...item,
-            time: new Date(item.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            time: new Date(item.time).toLocaleTimeString(language === 'ru' ? 'ru-RU' : 'en-US', { hour: '2-digit', minute: '2-digit' }),
         }));
-    }, [data]);
+    }, [data, language]);
 
     if (!data || data.length === 0) {
         return <div className="h-[200px] flex items-center justify-center text-gray-400">No data available</div>;

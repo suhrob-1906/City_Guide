@@ -21,7 +21,7 @@ interface AirQualityData {
 export default function AirQualityPage() {
     const params = useParams();
     const city = getCityBySlug(params.slug as string);
-    const { t } = useLanguage();
+    const { t, language } = useLanguage();
     const [data, setData] = useState<AirQualityData | null>(null);
     const [loading, setLoading] = useState(true);
 
@@ -111,6 +111,7 @@ export default function AirQualityPage() {
                                         color={data.color}
                                         height={200}
                                         label={t('air.legend')}
+                                        language={language}
                                     />
                                 </div>
                             )}
@@ -145,6 +146,9 @@ export default function AirQualityPage() {
                                         {data.aqi <= 2
                                             ? t('air.goodDesc')
                                             : t('air.poorDesc')}
+                                        <p className="text-xs text-gray-400 mt-2">
+                                            {t('air.updated')}: {new Date(data.measuredAt).toLocaleString(language === 'ru' ? 'ru-RU' : 'en-US')}
+                                        </p>
                                     </div>
                                 </div>
                             </div>
