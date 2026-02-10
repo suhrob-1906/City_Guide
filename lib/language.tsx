@@ -115,15 +115,12 @@ const translations = {
         'map.seconds': 's',
         'map.viewDetails': 'View Details',
 
-        // Weather
+        // Weather (Additional)
         'weather.feelsLike': 'Feels like',
-        'weather.humidity': 'Humidity',
-        'weather.wind': 'Wind',
         'weather.rainExpected': 'Rain Expected',
         'weather.noRain': 'No Rain',
         'weather.hourly': 'Hourly Forecast',
         'weather.daily': '10-Day Forecast',
-        'weather.error': 'Unable to load weather data',
         'weather.kmh': 'km/h',
 
         // Weather conditions
@@ -249,15 +246,12 @@ const translations = {
         'map.seconds': 'с',
         'map.viewDetails': 'Подробнее',
 
-        // Weather
+        // Weather (Additional)
         'weather.feelsLike': 'Ощущается как',
-        'weather.humidity': 'Влажность',
-        'weather.wind': 'Ветер',
         'weather.rainExpected': 'Ожидается дождь',
         'weather.noRain': 'Без осадков',
         'weather.hourly': 'Почасовой прогноз',
         'weather.daily': 'Прогноз на 10 дней',
-        'weather.error': 'Не удалось загрузить погоду',
         'weather.kmh': 'км/ч',
 
         // Weather conditions
