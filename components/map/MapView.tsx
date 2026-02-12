@@ -210,12 +210,33 @@ export default function MapView({ city }: { city: City }) {
       const coordinates = (e.features[0].geometry as any).coordinates.slice();
       const props = e.features[0].properties;
 
+      // Calculate distance if user location is available
+      let distanceHtml = '';
+      if (userLocation) {
+        const [userLon, userLat] = userLocation;
+        const [poiLon, poiLat] = coordinates;
+
+        // Calculate straight-line distance using Haversine formula
+        const R = 6371; // Earth's radius in km
+        const dLat = (poiLat - userLat) * Math.PI / 180;
+        const dLon = (poiLon - userLon) * Math.PI / 180;
+        const a =
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos(userLat * Math.PI / 180) * Math.cos(poiLat * Math.PI / 180) *
+          Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        const distance = R * c;
+
+        distanceHtml = `<p class="text-sm text-gray-600 mt-1">📍 ${distance.toFixed(2)} km ${t('map.distance').toLowerCase()}</p>`;
+      }
+
       new maplibregl.Popup()
         .setLngLat(coordinates)
         .setHTML(`
           <div class="p-2">
             <h3 class="font-bold">${props.icon} ${props.name || 'Unnamed'}</h3>
             <p class="text-sm text-gray-600">${props.type}</p>
+            ${distanceHtml}
           </div>
         `)
         .addTo(map.current!);
@@ -236,7 +257,7 @@ export default function MapView({ city }: { city: City }) {
     map.current.on('mouseleave', 'poi-emoji', () => {
       if (map.current) map.current.getCanvas().style.cursor = '';
     });
-  }, []);
+  }, [userLocation, t]);
 
   // Find nearest POI with real routing
   const findNearest = useCallback(async () => {
@@ -267,9 +288,16 @@ export default function MapView({ city }: { city: City }) {
 
       try {
         // Use OSRM API for real road routing
-        const profile = transportMode === 'driving' ? 'car' : 'foot';
-        const coords = `${userLon},${userLat};${nearest.geometry.coordinates[0]},${nearest.geometry.coordinates[1]}`;
-        const osrmUrl = `https://router.project-osrm.org/route/v1/${profile}/${coords}?overview=full&geometries=geojson`;
+        // Note: Public OSRM demo server supports different profiles
+        let osrmUrl;
+        if (transportMode === 'driving') {
+          const coords = `${userLon},${userLat};${nearest.geometry.coordinates[0]},${nearest.geometry.coordinates[1]}`;
+          osrmUrl = `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`;
+        } else {
+          // For walking, use foot profile
+          const coords = `${userLon},${userLat};${nearest.geometry.coordinates[0]},${nearest.geometry.coordinates[1]}`;
+          osrmUrl = `https://router.project-osrm.org/route/v1/foot/${coords}?overview=full&geometries=geojson`;
+        }
 
         const response = await fetch(osrmUrl);
         const data = await response.json();
@@ -474,8 +502,8 @@ export default function MapView({ city }: { city: City }) {
               <button
                 onClick={() => setTransportMode('walking')}
                 className={`px-3 py-2 rounded transition-colors ${transportMode === 'walking'
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-transparent text-gray-600 hover:bg-white/50'
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-transparent text-gray-600 hover:bg-white/50'
                   }`}
                 title={t('map.walking')}
               >
@@ -484,8 +512,8 @@ export default function MapView({ city }: { city: City }) {
               <button
                 onClick={() => setTransportMode('driving')}
                 className={`px-3 py-2 rounded transition-colors ${transportMode === 'driving'
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-transparent text-gray-600 hover:bg-white/50'
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-transparent text-gray-600 hover:bg-white/50'
                   }`}
                 title={t('map.driving')}
               >
