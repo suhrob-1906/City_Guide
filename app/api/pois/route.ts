@@ -35,8 +35,7 @@ export async function GET(req: NextRequest) {
 
     try {
         const cached = await cache.get(cacheKey);
-        // Force refresh for debugging
-        if (cached && false) {
+        if (cached) {
             await logApi('pois', 'overpass', 200, Date.now() - startTime, true);
             return NextResponse.json(cached);
         }
@@ -47,14 +46,19 @@ export async function GET(req: NextRequest) {
 
         return NextResponse.json(data);
     } catch (error: any) {
+        console.error('[POI API] Error:', error.message, error.stack);
         await logApi('pois', 'overpass', 500, Date.now() - startTime, false);
 
         const stale = await cache.get(cacheKey);
         if (stale) {
+            console.log('[POI API] Returning stale cache due to error');
             return NextResponse.json({ ...stale, stale: true });
         }
 
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({
+            error: 'Failed to fetch POI data',
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        }, { status: 500 });
     }
 }
 
