@@ -1,152 +1,228 @@
-# Uzbek City Helper 🇺🇿
+# 🇺🇿 Uzbek City Helper
 
-A modern, full-stack Next.js application designed to provide real-time environmental data and accessible location services for major cities in Uzbekistan (Tashkent, Samarkand, Bukhara, and more).
+Современное веб-приложение для получения актуальной информации о городах Узбекистана: погода, качество воздуха, геомагнитная активность и интерактивная карта с важными местами.
 
-![Project Banner](https://via.placeholder.com/1200x600?text=Uzbek+City+Helper+Dashboard)
+## 📋 О проекте
 
-## 🚀 Features
+**Uzbek City Helper** — это полнофункциональное приложение, которое помогает жителям и гостям городов Узбекистана получать важную информацию в режиме реального времени. Приложение поддерживает несколько крупных городов (Ташкент, Самарканд, Бухара, Андижан, Наманган, Фергана, Коканд) и предоставляет данные на двух языках: английском и русском.
 
-### 🌤️ Weather Monitoring
-- Real-time weather conditions including temperature, humidity, wind speed, and precipitation.
-- **Detailed Forecasts**: Hourly and 10-day weather forecasts powered by [Open-Meteo](https://open-meteo.com/).
-- **Dynamic Visuals**: Beautifully animated gradients representing current weather conditions.
+### Основные возможности:
 
-### 🌌 Geomagnetic Activity (Kp Index)
-- Live geomagnetic storm tracking using data from [NOAA SWPC](https://www.swpc.noaa.gov/).
-- **24-Hour History**: Interactive chart showing Kp index trends over the last day.
-- **Health Advisories**: Clear explanations of what different Kp levels mean for your health and technology.
+- 🌤️ **Погода** - текущая погода и прогноз на 10 дней
+- 💨 **Качество воздуха** - мониторинг загрязнения воздуха с рекомендациями
+- 🌌 **Геомагнитная активность** - отслеживание магнитных бурь (Kp-индекс)
+- 🗺️ **Интерактивная карта** - поиск туалетов, больниц, поликлиник с навигацией
+- 🌍 **Двуязычность** - полная поддержка английского и русского языков
+- 📱 **Адаптивный дизайн** - работает на всех устройствах
 
-### 💨 Air Quality (AQI)
-- Comprehensive air quality monitoring with data from [OpenWeatherMap](https://openweathermap.org/).
-- **24-Hour Forecast**: Predictive chart for air quality changes.
-- **Health Recommendations**: Actionable advice based on current pollution levels.
+## 🛠️ Технологии
 
-### 🗺️ Accessible Points of Interest (POI)
-- Interactive map to find essential services:
-  - **Restrooms**: Public toilets.
-  - **Hospitals**: Medical facilities.
-  - **Accessibility**: Wheelchair-accessible places.
-- Powered by [OpenStreetMap](https://www.openstreetmap.org/) via Overpass API.
+### Frontend
+- **Next.js 14** - React фреймворк с App Router
+- **TypeScript** - типизированный JavaScript
+- **Tailwind CSS** - utility-first CSS фреймворк
+- **Framer Motion** - библиотека анимаций
+- **Recharts** - графики и диаграммы
+- **Lucide React** - современные иконки
 
-### 🌍 Application Intelligence
-- **Full Localization**: Seamlessly switch between English and Russian languages.
-- **Smart Caching**: Auto-detects environment (Redis vs. In-Memory) to cache API responses and respect rate limits.
-- **Robust Error Handling**: Graceful fallbacks ensure the app works even if external services are temporarily down.
+### Backend & API
+- **Next.js API Routes** - серверные эндпоинты
+- **Prisma ORM** - работа с базой данных
+- **PostgreSQL** - реляционная база данных
+- **Upstash Redis** - кеширование данных
 
----
+### Карта и геолокация
+- **MapLibre GL JS** - интерактивные карты
+- **Overpass API** - данные OpenStreetMap для POI
+- **OSRM** - построение маршрутов для автомобилей
+- **Haversine Formula** - расчет расстояний для пешеходов
+- **Geolocation API** - определение местоположения пользователя
 
-## 🛠️ Technology Stack
+### Источники данных
+- **Open-Meteo API** - погода (бесплатно, без ключа)
+- **OpenWeather API** - качество воздуха (требуется ключ)
+- **NOAA SWPC** - геомагнитная активность (бесплатно)
+- **OpenStreetMap** - карты и POI данные
 
-- **Framework**: [Next.js 14](https://nextjs.org/) (App Router)
-- **Language**: [TypeScript](https://www.typescriptlang.org/)
-- **Styling**: [Tailwind CSS](https://tailwindcss.com/) with [shadcn/ui](https://ui.shadcn.com/) components
-- **Animations**: [Framer Motion](https://www.framer.com/motion/)
-- **Database**: [PostgreSQL](https://www.postgresql.org/) (via [Prisma ORM](https://www.prisma.io/))
-- **Maps**: [MapLibre GL JS](https://maplibre.org/)
-- **Deployment**: Optimized for [Render](https://render.com/) and [Vercel](https://vercel.com/)
+## 🗺️ Функции карты
 
----
+### Поиск мест
+- **Туалеты** - общественные туалеты
+- **Больницы** - медицинские учреждения
+- **Поликлиники** - амбулаторные клиники
+- **Доступность** - места для людей с ограниченными возможностями
 
-## 🚀 Getting Started
+### Навигация
+- **Два режима транспорта**:
+  - 🚗 **На машине** - маршрут по дорогам через OSRM API
+  - 🚶 **Пешком** - прямое расстояние с расчетом времени
+  
+- **Автоматический поиск ближайшего места** выбранного типа
+- **Отображение расстояния** при клике на любую точку
+- **Автозум** на маршрут для удобного просмотра
 
-### Prerequisites
+### Технические детали
+- Кеширование POI данных на 24 часа
+- Rate limiting для защиты от перегрузки API
+- Fallback на устаревшие данные при недоступности API
+- Timeout 30 секунд для запросов к Overpass API
+
+## 🚀 Установка и запуск
+
+### Требования
 - Node.js 20+
-- PostgreSQL database (local or cloud)
-- OpenWeather API Key (free tier works)
+- PostgreSQL база данных
+- OpenWeather API ключ
 
-### Local Development
+### Локальная разработка
 
-1.  **Clone the repository:**
-    ```bash
-    git clone https://github.com/your-username/uzbek-city-helper.git
-    cd uzbek-city-helper
-    ```
+1. **Клонируйте репозиторий:**
+```bash
+git clone https://github.com/suhrob-1906/City_Guide.git
+cd City_Guide
+```
 
-2.  **Install dependencies:**
-    ```bash
-    npm install
-    ```
+2. **Установите зависимости:**
+```bash
+npm install
+```
 
-3.  **Configure Environment Variables:**
-    Create a `.env` file in the root directory:
-    ```env
-    # Database (Required for logging, optional for core features)
-    DATABASE_URL="postgresql://user:password@localhost:5432/uzbek_city_helper"
+3. **Настройте переменные окружения:**
 
-    # APIs (Required)
-    OPENWEATHER_API_KEY="your_openweather_api_key_here"
+Создайте файл `.env`:
+```env
+# База данных
+DATABASE_URL="postgresql://user:password@localhost:5432/city_helper"
 
-    # Map Style (Optional - use free demo if needed)
-    NEXT_PUBLIC_MAP_STYLE_URL="https://demotiles.maplibre.org/style.json"
-    
-    # Optional Caching (Upstash Redis)
-    UPSTASH_REDIS_REST_URL=""
-    UPSTASH_REDIS_REST_TOKEN=""
-    ```
+# API ключи
+OPENWEATHER_API_KEY="ваш_ключ_openweather"
 
-4.  **Listen to the database (Optional):**
-    If you have a database connection:
-    ```bash
-    npx prisma generate
-    npx prisma migrate dev
-    ```
+# Карта (опционально)
+NEXT_PUBLIC_MAP_STYLE_URL="https://api.maptiler.com/maps/streets/style.json?key=ваш_ключ"
 
-5.  **Run the development server:**
-    ```bash
-    npm run dev
-    ```
-    Open [http://localhost:3000](http://localhost:3000) to view the app.
+# Redis (опционально, для кеширования)
+UPSTASH_REDIS_REST_URL="ваш_redis_url"
+UPSTASH_REDIS_REST_TOKEN="ваш_redis_token"
+```
+
+4. **Инициализируйте базу данных:**
+```bash
+npx prisma generate
+npx prisma migrate dev
+```
+
+5. **Запустите сервер разработки:**
+```bash
+npm run dev
+```
+
+Откройте [http://localhost:3000](http://localhost:3000)
+
+## 📂 Структура проекта
+
+```
+├── app/                      # Next.js App Router
+│   ├── api/                  # API эндпоинты
+│   │   ├── air/              # Качество воздуха
+│   │   ├── kp/               # Геомагнитная активность
+│   │   ├── pois/             # Точки интереса
+│   │   └── weather/          # Погода
+│   ├── city/[slug]/          # Страницы городов
+│   └── page.tsx              # Главная страница
+├── components/               # React компоненты
+│   ├── cards/                # Карточки данных
+│   ├── map/                  # Компоненты карты
+│   └── ui/                   # UI элементы
+├── config/                   # Конфигурация
+│   ├── cities.ts             # Данные городов
+│   └── layers.ts             # Слои карты
+├── lib/                      # Утилиты
+│   ├── fetchers/             # API клиенты
+│   ├── cache.ts              # Кеширование
+│   ├── db.ts                 # База данных
+│   ├── language.tsx          # Локализация
+│   └── rateLimit.ts          # Rate limiting
+├── prisma/                   # Prisma схема
+└── public/                   # Статические файлы
+```
+
+## 🌟 Особенности реализации
+
+### Умное кеширование
+- Автоматическое определение Redis или in-memory кеша
+- Разные TTL для разных типов данных
+- Stale-while-revalidate стратегия
+
+### Обработка ошибок
+- Graceful degradation при недоступности API
+- Fallback на кешированные данные
+- Информативные сообщения об ошибках
+
+### Производительность
+- Server-side rendering для быстрой загрузки
+- Оптимизация изображений через Next.js Image
+- Ленивая загрузка компонентов
+- Кеширование на уровне API и браузера
+
+### Доступность
+- Семантическая HTML разметка
+- ARIA атрибуты для скринридеров
+- Клавиатурная навигация
+- Контрастные цвета
+
+## 📱 Адаптивность
+
+Приложение полностью адаптировано для:
+- 📱 Мобильных телефонов (320px+)
+- 📱 Планшетов (768px+)
+- 💻 Десктопов (1024px+)
+- 🖥️ Больших экранов (1920px+)
+
+## 🔒 Безопасность
+
+- Rate limiting на всех API эндпоинтах
+- Валидация входных данных
+- Защита от SQL инъекций через Prisma
+- CORS настройки
+- Environment variables для чувствительных данных
+
+## 📊 Мониторинг
+
+Приложение логирует:
+- API запросы и их статусы
+- Время отклика
+- Использование кеша
+- Ошибки и исключения
+
+Все логи сохраняются в PostgreSQL для анализа.
+
+## 🤝 Вклад в проект
+
+Если вы хотите внести вклад:
+1. Форкните репозиторий
+2. Создайте ветку для фичи (`git checkout -b feature/amazing-feature`)
+3. Закоммитьте изменения (`git commit -m 'Add amazing feature'`)
+4. Запушьте в ветку (`git push origin feature/amazing-feature`)
+5. Откройте Pull Request
+
+## 📄 Лицензия
+
+MIT License - см. файл [LICENSE](LICENSE)
+
+## 👨‍💻 Автор
+
+**Suhrob**
+- GitHub: [@suhrob-1906](https://github.com/suhrob-1906)
+
+## 🙏 Благодарности
+
+- **Open-Meteo** - за бесплатный API погоды
+- **NOAA** - за данные геомагнитной активности
+- **OpenWeatherMap** - за данные качества воздуха
+- **OpenStreetMap** - за картографические данные
+- **OSRM** - за API маршрутизации
+- **MapLibre** - за отличную библиотеку карт
 
 ---
 
-## ☁️ Deployment Guide
-
-### Option 1: Deploy to Render (Recommended for Fullstack)
-
-Render provides excellent support for Next.js and managed PostgreSQL/Redis services.
-
-1.  **Database**: Create a new **PostgreSQL** database on Render. Copy the `Internal Database URL`.
-2.  **Web Service**: Create a new **Web Service** connected to your GitHub repo.
-3.  **Configuration**:
-    - **Build Command**: `npm ci && npx prisma generate && npm run build`
-    - **Start Command**: `npm start`
-4.  **Environment Variables**: Add `DATABASE_URL` (from step 1) and `OPENWEATHER_API_KEY`.
-
-### Option 2: Deploy to Vercel (Fastest)
-
-Vercel is the native platform for Next.js.
-
-1.  **Import Project**: Connect your GitHub repository to Vercel.
-2.  **Database**: Vercel doesn't host databases, so use **Vercel Postgres**, **Supabase**, or **Neon**. Add the connection string as `DATABASE_URL`.
-3.  **Environment Variables**: Add your `OPENWEATHER_API_KEY` in the dashboard.
-4.  **Deploy**: Click deploy, and your app will be live in minutes.
-
----
-
-## 📂 Project Structure
-
-```
-├── app/                  # Next.js App Router pages
-│   ├── api/              # Backend API routes
-│   ├── city/[slug]/      # Dynamic city dashboards
-│   └── globals.css       # Global styles & tailwind imports
-├── components/           # React components
-│   ├── cards/            # Dashboard widgets
-│   ├── map/              # Map visualization
-│   └── ui/               # Reusable UI elements
-├── config/               # Static configuration (Cities, Layers)
-├── lib/                  # Utilities & Business Logic
-│   ├── fetchers/         # External API clients
-│   └── language.tsx      # Application localization
-├── prisma/               # Database schema
-└── public/               # Static assets
-```
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgements
-
-- **Data Sources**: Open-Meteo, NOAA, OpenWeather, OpenStreetMap.
-- **Icons**: Lucide React.
+Сделано с ❤️ для Узбекистана
