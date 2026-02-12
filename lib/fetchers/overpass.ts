@@ -114,4 +114,11 @@ export async function fetchPois(
             features,
             fetchedAt: new Date().toISOString(),
         };
+    } catch (error: any) {
+        if (error.name === 'AbortError') {
+            throw new Error('Overpass API request timed out after 30 seconds');
+        }
+        console.error('[Overpass] Error:', error.message);
+        throw new Error(`Failed to fetch POI data: ${error.message}`);
     }
+}
