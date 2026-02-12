@@ -107,6 +107,7 @@ const translations = {
         'map.toilets': 'Toilets',
         'map.hospitals': 'Hospitals',
         'map.wheelchair': 'Wheelchair Access',
+        'map.clinics': 'Clinics',
         'map.found': 'Found',
         'map.locations': 'locations',
         'map.updated': 'Updated',
@@ -114,6 +115,12 @@ const translations = {
         'map.rateLimit': 'Please wait before refreshing',
         'map.seconds': 's',
         'map.viewDetails': 'View Details',
+        'map.findNearest': 'Find Nearest',
+        'map.routeToNearest': 'Route to nearest',
+        'map.distance': 'Distance',
+        'map.noLocation': 'Enable location to find nearest',
+        'map.driving': 'Driving',
+        'map.walking': 'Walking',
 
         // Weather (Additional)
         'weather.feelsLike': 'Feels like',
@@ -238,6 +245,7 @@ const translations = {
         'map.toilets': 'Туалеты',
         'map.hospitals': 'Больницы',
         'map.wheelchair': 'Доступ для инвалидных колясок',
+        'map.clinics': 'Поликлиники',
         'map.found': 'Найдено',
         'map.locations': 'мест',
         'map.updated': 'Обновлено',
@@ -245,6 +253,12 @@ const translations = {
         'map.rateLimit': 'Подождите перед обновлением',
         'map.seconds': 'с',
         'map.viewDetails': 'Подробнее',
+        'map.findNearest': 'Найти ближайший',
+        'map.routeToNearest': 'Маршрут к ближайшему',
+        'map.distance': 'Расстояние',
+        'map.noLocation': 'Включите геолокацию для поиска',
+        'map.driving': 'На машине',
+        'map.walking': 'Пешком',
 
         // Weather (Additional)
         'weather.feelsLike': 'Ощущается как',

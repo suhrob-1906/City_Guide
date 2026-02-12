@@ -6,7 +6,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { City } from '@/config/cities';
 import { POI_LAYERS } from '@/config/layers';
 import { PoiCollection } from '@/lib/fetchers/overpass';
-import { RefreshCw, Layers } from 'lucide-react';
+import { RefreshCw, Layers, Navigation, Car, PersonStanding } from 'lucide-react';
 import { useLanguage } from '@/lib/language';
 import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 
@@ -18,6 +18,9 @@ export default function MapView({ city }: { city: City }) {
   const [pois, setPois] = useState<PoiCollection | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [rateLimitWait, setRateLimitWait] = useState(0);
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const [nearestPOI, setNearestPOI] = useState<any | null>(null);
+  const [transportMode, setTransportMode] = useState<'driving' | 'walking'>('walking');
   const { t } = useLanguage();
   const refreshTick = useAutoRefresh(600000); // 10 minutes
 
@@ -38,44 +41,80 @@ export default function MapView({ city }: { city: City }) {
       map.current = mapInstance;
       mapInstance.addControl(new maplibregl.NavigationControl(), 'top-right');
 
+      // Add Geolocation Control
+      const geolocate = new maplibregl.GeolocateControl({
+        positionOptions: {
+          enableHighAccuracy: true
+        },
+        trackUserLocation: true,
+        showUserLocation: true
+      });
+      mapInstance.addControl(geolocate, 'top-right');
+
+      // Track user location
+      geolocate.on('geolocate', (e: any) => {
+        setUserLocation([e.coords.longitude, e.coords.latitude]);
+      });
+
+      // Suppress sprite warnings for base map style
+      mapInstance.on('styleimagemissing', (e) => {
+        const missingImage = e.id;
+        if (!mapInstance.hasImage(missingImage)) {
+          mapInstance.addImage(missingImage, {
+            width: 1,
+            height: 1,
+            data: new Uint8Array(4)
+          });
+        }
+      });
+
       // Setup layers when map style is loaded
       mapInstance.on('load', () => {
-        console.log('[Map] Style loaded. Layers stack:', mapInstance.getStyle().layers?.map(l => l.id).join(', '));
+        console.log('[Map] Style loaded.');
 
-        console.log('[Map] Creating POI source and layers');
+        // Create custom pin icon using canvas
+        const size = 48;
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
 
-        // Add source with a HARDCODED DEBUG POINT
-        mapInstance.addSource('pois', {
-          type: 'geojson',
-          data: {
-            type: 'FeatureCollection',
-            features: [
-              {
-                type: 'Feature',
-                geometry: { type: 'Point', coordinates: [city.lon, city.lat] }, // City center
-                properties: { name: 'DEBUG POINT', type: 'debug' }
-              }
-            ]
-          },
-          cluster: false,
-        });
+        if (ctx) {
+          ctx.fillStyle = '#3b82f6';
+          ctx.beginPath();
+          ctx.moveTo(size / 2, size - 4);
+          ctx.bezierCurveTo(size / 2, size - 4, size - 8, size / 2, size - 8, size / 3);
+          ctx.bezierCurveTo(size - 8, 8, size / 2, 4, size / 2, 4);
+          ctx.bezierCurveTo(size / 2, 4, 8, 8, 8, size / 3);
+          ctx.bezierCurveTo(8, size / 2, size / 2, size - 4, size / 2, size - 4);
+          ctx.fill();
 
-        // Debug Green Circles
-        if (mapInstance.getLayer('poi-layer')) mapInstance.removeLayer('poi-layer');
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.arc(size / 2, size / 3, 6, 0, Math.PI * 2);
+          ctx.fill();
 
-        mapInstance.addLayer({
-          id: 'poi-layer',
-          type: 'circle',
-          source: 'pois',
-          paint: {
-            'circle-color': '#00ff00', // Bright GREEN
-            'circle-radius': 20,
-            'circle-stroke-width': 4,
-            'circle-stroke-color': '#000000',
-          },
-        });
+          const imageData = ctx.getImageData(0, 0, size, size);
+          if (!mapInstance.hasImage('custom-pin')) {
+            mapInstance.addImage('custom-pin', {
+              width: size,
+              height: size,
+              data: new Uint8Array(imageData.data)
+            }, { sdf: true });
+          }
+          console.log('[Map] Custom pin icon added successfully');
+        }
 
-        console.log('[Map] Added poi-layer (Green). Verifying presence:', mapInstance.getLayer('poi-layer') ? 'EXISTS' : 'MISSING');
+        setupMapLayers();
+
+        // Always request geolocation on first visit to city page
+        const hasRequestedLocation = sessionStorage.getItem(`map-geo-${city.slug}`);
+        if (!hasRequestedLocation) {
+          setTimeout(() => {
+            geolocate.trigger();
+            sessionStorage.setItem(`map-geo-${city.slug}`, 'true');
+          }, 1000);
+        }
       });
     } catch (e) {
       console.error('Map initialization error:', e);
@@ -88,73 +127,85 @@ export default function MapView({ city }: { city: City }) {
     };
   }, [city]);
 
-  // Setup map layers (one-time)
+  // Setup map layers
   const setupMapLayers = useCallback(() => {
     if (!map.current || map.current.getSource('pois')) {
-      console.log('[Map] Skipping layer setup - already exists or map not ready');
       return;
     }
 
     console.log('[Map] Creating POI source and layers');
 
-    // Add empty source
-    // Add empty source - CLUSTERING DISABLED FOR DEBUGGING
     map.current.addSource('pois', {
       type: 'geojson',
       data: { type: 'FeatureCollection', features: [] },
-      cluster: false, // Disabled clustering
+      cluster: false,
     });
 
-    // Render all points as circles - HIGH CONTRAST DEBUG
+    map.current.addSource('route', {
+      type: 'geojson',
+      data: { type: 'FeatureCollection', features: [] },
+    });
+
     if (map.current.getLayer('poi-layer')) map.current.removeLayer('poi-layer');
+
     map.current.addLayer({
       id: 'poi-layer',
-      type: 'circle',
-      source: 'pois',
-      paint: {
-        'circle-color': '#ff0000', // RED for visibility
-        'circle-radius': 15, // Huge radius
-        'circle-stroke-width': 3,
-        'circle-stroke-color': '#000000',
-      },
-    });
-
-    // Add a text label layer for icons/names
-    map.current.addLayer({
-      id: 'poi-labels',
       type: 'symbol',
       source: 'pois',
-      minzoom: 10,
       layout: {
-        'text-field': ['get', 'icon'], // Display the emoji icon
+        'icon-image': 'custom-pin',
+        'icon-size': 0.6,
+        'icon-anchor': 'bottom',
+        'icon-allow-overlap': true,
+        'text-field': ['get', 'name'],
         'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
-        'text-size': 18, // Larger size for emoji
-        'text-offset': [0, -0.6], // Center inside/above circle
-        'text-anchor': 'center',
-        'text-allow-overlap': true, // Allow some overlap to see more
+        'text-size': 11,
+        'text-offset': [0, 1.5],
+        'text-anchor': 'top',
+        'text-optional': true,
       },
       paint: {
-        'text-color': '#000000',
+        'icon-color': ['get', 'color'],
+        'text-color': '#1f2937',
         'text-halo-color': '#ffffff',
-        'text-halo-width': 0,
+        'text-halo-width': 2,
       },
     });
 
-    console.log('[Map] Setup POI layers (No Clustering, with Labels)');
+    map.current.addLayer({
+      id: 'poi-emoji',
+      type: 'symbol',
+      source: 'pois',
+      layout: {
+        'text-field': ['get', 'icon'],
+        'text-size': 20,
+        'text-anchor': 'center',
+        'text-offset': [0, -0.9],
+        'text-allow-overlap': true,
+      },
+      paint: {
+        'text-color': '#ffffff',
+      },
+    });
 
-    /* 
-    // OLD CLUSTER LAYERS COMMENTED OUT
-    // Cluster circles
-    map.current.addLayer({ ... });
-    // Cluster count
-    map.current.addLayer({ ... });
-    // Unclustered points
-    map.current.addLayer({ ... });
-    */
+    map.current.addLayer({
+      id: 'route-line',
+      type: 'line',
+      source: 'route',
+      layout: {
+        'line-join': 'round',
+        'line-cap': 'round',
+      },
+      paint: {
+        'line-color': '#3b82f6',
+        'line-width': 4,
+        'line-opacity': 0.8,
+      },
+    });
 
-    // Click handlers (set up once)
-    // Click handlers
-    map.current.on('click', 'poi-layer', (e) => {
+    console.log('[Map] Setup POI layers with Pins');
+
+    const handleClick = (e: any) => {
       if (!e.features || !e.features[0]) return;
       const coordinates = (e.features[0].geometry as any).coordinates.slice();
       const props = e.features[0].properties;
@@ -163,12 +214,15 @@ export default function MapView({ city }: { city: City }) {
         .setLngLat(coordinates)
         .setHTML(`
           <div class="p-2">
-            <h3 class="font-bold">${props.name || 'Unnamed'}</h3>
+            <h3 class="font-bold">${props.icon} ${props.name || 'Unnamed'}</h3>
             <p class="text-sm text-gray-600">${props.type}</p>
           </div>
         `)
         .addTo(map.current!);
-    });
+    };
+
+    map.current.on('click', 'poi-layer', handleClick);
+    map.current.on('click', 'poi-emoji', handleClick);
 
     map.current.on('mouseenter', 'poi-layer', () => {
       if (map.current) map.current.getCanvas().style.cursor = 'pointer';
@@ -176,12 +230,132 @@ export default function MapView({ city }: { city: City }) {
     map.current.on('mouseleave', 'poi-layer', () => {
       if (map.current) map.current.getCanvas().style.cursor = '';
     });
+    map.current.on('mouseenter', 'poi-emoji', () => {
+      if (map.current) map.current.getCanvas().style.cursor = 'pointer';
+    });
+    map.current.on('mouseleave', 'poi-emoji', () => {
+      if (map.current) map.current.getCanvas().style.cursor = '';
+    });
   }, []);
+
+  // Find nearest POI with real routing
+  const findNearest = useCallback(async () => {
+    if (!userLocation || !pois || !pois.features.length) {
+      setError(t('map.noLocation'));
+      return;
+    }
+
+    const [userLon, userLat] = userLocation;
+    let nearest: any = null;
+    let minDistance = Infinity;
+
+    pois.features.forEach((poi: any) => {
+      const [poiLon, poiLat] = poi.geometry.coordinates;
+      const distance = Math.sqrt(
+        Math.pow(poiLon - userLon, 2) + Math.pow(poiLat - userLat, 2)
+      );
+
+      if (distance < minDistance) {
+        minDistance = distance;
+        nearest = poi;
+      }
+    });
+
+    if (nearest && map.current) {
+      setNearestPOI(nearest);
+      setLoading(true);
+
+      try {
+        // Use OSRM API for real road routing
+        const profile = transportMode === 'driving' ? 'car' : 'foot';
+        const coords = `${userLon},${userLat};${nearest.geometry.coordinates[0]},${nearest.geometry.coordinates[1]}`;
+        const osrmUrl = `https://router.project-osrm.org/route/v1/${profile}/${coords}?overview=full&geometries=geojson`;
+
+        const response = await fetch(osrmUrl);
+        const data = await response.json();
+
+        if (data.code === 'Ok' && data.routes && data.routes[0]) {
+          const route = data.routes[0];
+          const routeData = {
+            type: 'FeatureCollection' as const,
+            features: [{
+              type: 'Feature' as const,
+              geometry: route.geometry,
+              properties: {}
+            }]
+          };
+
+          const routeSource = map.current.getSource('route') as maplibregl.GeoJSONSource;
+          if (routeSource) {
+            routeSource.setData(routeData);
+          }
+
+          // Fit map to show both user and POI
+          const bounds = new maplibregl.LngLatBounds();
+          bounds.extend(userLocation);
+          bounds.extend(nearest.geometry.coordinates as [number, number]);
+          map.current.fitBounds(bounds, { padding: 100 });
+
+          // Show popup with distance
+          const distanceKm = (route.distance / 1000).toFixed(2);
+          const durationMin = Math.round(route.duration / 60);
+
+          new maplibregl.Popup()
+            .setLngLat(nearest.geometry.coordinates as [number, number])
+            .setHTML(`
+              <div class="p-2">
+                <h3 class="font-bold">${nearest.properties.icon} ${nearest.properties.name}</h3>
+                <p class="text-sm text-gray-600">${t('map.distance')}: ${distanceKm} km</p>
+                <p class="text-sm text-gray-600">${durationMin} min</p>
+              </div>
+            `)
+            .addTo(map.current);
+        } else {
+          // Fallback to straight line if OSRM fails
+          const routeData = {
+            type: 'FeatureCollection' as const,
+            features: [{
+              type: 'Feature' as const,
+              geometry: {
+                type: 'LineString' as const,
+                coordinates: [userLocation, nearest.geometry.coordinates]
+              },
+              properties: {}
+            }]
+          };
+
+          const routeSource = map.current.getSource('route') as maplibregl.GeoJSONSource;
+          if (routeSource) {
+            routeSource.setData(routeData);
+          }
+
+          const bounds = new maplibregl.LngLatBounds();
+          bounds.extend(userLocation);
+          bounds.extend(nearest.geometry.coordinates as [number, number]);
+          map.current.fitBounds(bounds, { padding: 100 });
+
+          new maplibregl.Popup()
+            .setLngLat(nearest.geometry.coordinates as [number, number])
+            .setHTML(`
+              <div class="p-2">
+                <h3 class="font-bold">${nearest.properties.icon} ${nearest.properties.name}</h3>
+                <p class="text-sm text-gray-600">${t('map.distance')}: ${(minDistance * 111).toFixed(2)} km</p>
+              </div>
+            `)
+            .addTo(map.current);
+        }
+      } catch (error) {
+        console.error('Routing error:', error);
+        setError('Failed to calculate route');
+      } finally {
+        setLoading(false);
+      }
+    }
+  }, [userLocation, pois, transportMode, t]);
 
   // Fetch POIs
   const fetchPois = useCallback(async () => {
     if (!map.current) {
-      console.warn('[Map] Cannot fetch POIs: map not initialized');
       return;
     }
 
@@ -189,13 +363,11 @@ export default function MapView({ city }: { city: City }) {
     setError(null);
 
     try {
-      console.log(`[Map] Fetching POIs for ${city.slug}, layer: ${selectedLayer}`);
       const res = await fetch(`/api/pois?city=${city.slug}&type=${selectedLayer}`);
 
       if (res.status === 429) {
         setError(t('map.rateLimit'));
         setRateLimitWait(10);
-        // Countdown timer
         const interval = setInterval(() => {
           setRateLimitWait((prev) => {
             if (prev <= 1) {
@@ -211,68 +383,46 @@ export default function MapView({ city }: { city: City }) {
       if (!res.ok) throw new Error('Failed to fetch POIs');
 
       const data: PoiCollection = await res.json();
-      console.log(`[Map] Received ${data.features.length} POI features`);
 
-      // Validate data
-      if (!data.features || data.features.length === 0) {
-        console.warn('[Map] No POI features found');
-        setPois(data);
+      if (!data.features) {
+        setPois({ type: 'FeatureCollection', features: [], fetchedAt: new Date().toISOString() });
         return;
       }
 
-      // Validate coordinates
       const validFeatures = data.features.filter(f => {
         const coords = f.geometry.coordinates;
-        if (coords.length !== 2) return false;
-        const [lon, lat] = coords;
-        return lon >= -180 && lon <= 180 && lat >= -90 && lat <= 90;
+        return coords.length === 2;
       });
 
-      if (validFeatures.length !== data.features.length) {
-        console.warn(`[Map] Filtered out ${data.features.length - validFeatures.length} invalid features`);
-      }
-
-      const validData = { ...data, features: validFeatures };
-
-      // Inject icon into properties for display
       const currentLayer = POI_LAYERS.find(l => l.id === selectedLayer);
       const icon = currentLayer?.icon || '•';
+      const color = currentLayer?.color || '#3b82f6';
 
-      validData.features = validData.features.map(f => ({
-        ...f,
-        properties: {
-          ...f.properties,
-          icon: icon
-        }
-      }));
+      const validData = {
+        ...data,
+        features: validFeatures.map(f => ({
+          ...f,
+          properties: {
+            ...f.properties,
+            icon: icon,
+            color: color
+          }
+        }))
+      };
 
       setPois(validData);
 
-      // Update map source (layers should already exist from setupMapLayers)
       const source = map.current.getSource('pois');
       if (source) {
         (source as maplibregl.GeoJSONSource).setData(validData);
-        console.log(`[Map] Updated POI source with ${validFeatures.length} features`);
 
-        // Fit map to points
         if (validFeatures.length > 0) {
-          const sample = validFeatures[0];
-          console.log('[Map DEBUG] First feature coords:', sample.geometry.coordinates);
-          console.log('[Map DEBUG] First feature props:', sample.properties);
-
           const bounds = new maplibregl.LngLatBounds();
           validFeatures.forEach((f) => {
             bounds.extend(f.geometry.coordinates as [number, number]);
           });
-
-          console.log('[Map DEBUG] Fitting bounds:', bounds.toArray());
           map.current.fitBounds(bounds, { padding: 50, maxZoom: 15 });
-
-          // Force move to first point to ensure we are looking at it
-          // map.current.flyTo({ center: sample.geometry.coordinates as [number, number], zoom: 14 });
         }
-      } else {
-        console.error('[Map] POI source not found! Layers may not be initialized.');
       }
     } catch (error) {
       console.error('[Map] Failed to fetch POIs:', error);
@@ -282,16 +432,6 @@ export default function MapView({ city }: { city: City }) {
     }
   }, [city.slug, selectedLayer, t]);
 
-  // Update marker color when layer changes
-  useEffect(() => {
-    if (map.current && map.current.getLayer('poi-layer')) {
-      const layer = POI_LAYERS.find((l) => l.id === selectedLayer);
-      // Update stroke color to match layer type, keep white background
-      map.current.setPaintProperty('poi-layer', 'circle-stroke-color', layer?.color || '#3b82f6');
-    }
-  }, [selectedLayer]);
-
-  // Fetch POIs when layer changes or auto-refresh
   useEffect(() => {
     if (map.current) {
       fetchPois();
@@ -303,22 +443,25 @@ export default function MapView({ city }: { city: City }) {
       'toilets': t('map.toilets'),
       'hospitals': t('map.hospitals'),
       'wheelchair': t('map.wheelchair'),
+      'clinics': t('map.clinics'),
     };
     return layerMap[layerId] || layerId;
   };
 
   return (
     <div className="glass rounded-2xl overflow-hidden">
-      <div className="p-4 border-b border-white/20 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Layers className="w-5 h-5" />
-          <span className="font-semibold">{t('map.title')}</span>
+      <div className="p-3 sm:p-4 border-b border-white/20">
+        <div className="flex items-center justify-between mb-2 sm:mb-3">
+          <div className="flex items-center gap-2">
+            <Layers className="w-5 h-5" />
+            <span className="font-semibold text-sm sm:text-base">{t('map.title')}</span>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
           <select
             value={selectedLayer}
             onChange={(e) => setSelectedLayer(e.target.value)}
-            className="px-3 py-2 rounded-lg bg-white/50 border border-white/30 text-sm"
+            className="px-3 py-2 rounded-lg bg-white/50 border border-white/30 text-sm w-full sm:w-auto"
           >
             {POI_LAYERS.map((layer) => (
               <option key={layer.id} value={layer.id}>
@@ -326,19 +469,52 @@ export default function MapView({ city }: { city: City }) {
               </option>
             ))}
           </select>
-          <button
-            onClick={fetchPois}
-            disabled={loading || rateLimitWait > 0}
-            className="px-3 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            title={rateLimitWait > 0 ? `${t('map.rateLimit')} ${rateLimitWait}${t('map.seconds')}` : t('map.refresh')}
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          </button>
+          <div className="flex gap-2 w-full sm:w-auto">
+            <div className="flex gap-1 bg-white/50 rounded-lg p-1">
+              <button
+                onClick={() => setTransportMode('walking')}
+                className={`px-3 py-2 rounded transition-colors ${transportMode === 'walking'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-transparent text-gray-600 hover:bg-white/50'
+                  }`}
+                title={t('map.walking')}
+              >
+                <PersonStanding className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setTransportMode('driving')}
+                className={`px-3 py-2 rounded transition-colors ${transportMode === 'driving'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-transparent text-gray-600 hover:bg-white/50'
+                  }`}
+                title={t('map.driving')}
+              >
+                <Car className="w-4 h-4" />
+              </button>
+            </div>
+            <button
+              onClick={findNearest}
+              disabled={!userLocation || !pois?.features.length || loading}
+              className="flex-1 sm:flex-initial px-3 py-2 rounded-lg bg-green-500 text-white hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1.5 text-sm font-medium whitespace-nowrap"
+              title={t('map.findNearest')}
+            >
+              <Navigation className="w-4 h-4" />
+              <span className="hidden xs:inline sm:inline">{t('map.findNearest')}</span>
+            </button>
+            <button
+              onClick={fetchPois}
+              disabled={loading || rateLimitWait > 0}
+              className="px-3 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              title={rateLimitWait > 0 ? `${t('map.rateLimit')} ${rateLimitWait}${t('map.seconds')}` : t('map.refresh')}
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
         </div>
       </div>
-      <div ref={mapContainer} className="h-[500px] w-full" />
+      <div ref={mapContainer} className="h-[400px] sm:h-[500px] w-full" />
       {error && (
-        <div className="p-3 text-sm text-red-600 border-t border-white/20 bg-red-50">
+        <div className="p-3 text-xs sm:text-sm text-red-600 border-t border-white/20 bg-red-50">
           {error} {rateLimitWait > 0 && `(${rateLimitWait}${t('map.seconds')})`}
         </div>
       )}

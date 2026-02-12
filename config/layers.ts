@@ -32,4 +32,12 @@ export const POI_LAYERS: PoiLayer[] = [
         color: '#10b981',
         overpassQuery: 'wheelchair=yes',
     },
+    {
+        id: 'clinics',
+        name: 'Clinics',
+        nameRu: 'Поликлиники',
+        icon: '🏥',
+        color: '#8b5cf6',
+        overpassQuery: 'amenity=clinic',
+    },
 ];

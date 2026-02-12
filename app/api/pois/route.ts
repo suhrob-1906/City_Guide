@@ -60,16 +60,18 @@ export async function GET(req: NextRequest) {
 
 async function logApi(endpoint: string, provider: string, status: number, latency: number, cached: boolean) {
     try {
+        if (process.env.NEXT_PHASE === 'phase-production-build') return;
+
         // Fire and forget, don't await to avoid slowing down response
         prisma.apiLog.create({
             data: { endpoint, provider, status, latencyMs: latency, cached },
         }).catch((e) => {
-            // Siltently fail if DB is offline
+            // Silently fail if DB is offline
             if (process.env.NODE_ENV === 'development') {
-                console.warn('Failed to log API call (DB might be offline):', e.message);
+                console.warn('Failed to log API call:', e.message);
             }
         });
     } catch (e) {
-        console.error('Failed to initiate logging:', e);
+        // Ignore initiation errors
     }
 }
