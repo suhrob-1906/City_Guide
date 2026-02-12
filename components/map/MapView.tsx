@@ -287,59 +287,66 @@ export default function MapView({ city }: { city: City }) {
       setLoading(true);
 
       try {
-        // Use OSRM API for real road routing
-        // Note: Public OSRM demo server supports different profiles
-        let osrmUrl;
         if (transportMode === 'driving') {
+          // Use OSRM API for car routing
           const coords = `${userLon},${userLat};${nearest.geometry.coordinates[0]},${nearest.geometry.coordinates[1]}`;
-          osrmUrl = `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`;
-        } else {
-          // For walking, use foot profile
-          const coords = `${userLon},${userLat};${nearest.geometry.coordinates[0]},${nearest.geometry.coordinates[1]}`;
-          osrmUrl = `https://router.project-osrm.org/route/v1/foot/${coords}?overview=full&geometries=geojson`;
-        }
+          const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`;
 
-        const response = await fetch(osrmUrl);
-        const data = await response.json();
+          const response = await fetch(osrmUrl);
+          const data = await response.json();
 
-        if (data.code === 'Ok' && data.routes && data.routes[0]) {
-          const route = data.routes[0];
-          const routeData = {
-            type: 'FeatureCollection' as const,
-            features: [{
-              type: 'Feature' as const,
-              geometry: route.geometry,
-              properties: {}
-            }]
-          };
+          if (data.code === 'Ok' && data.routes && data.routes[0]) {
+            const route = data.routes[0];
+            const routeData = {
+              type: 'FeatureCollection' as const,
+              features: [{
+                type: 'Feature' as const,
+                geometry: route.geometry,
+                properties: {}
+              }]
+            };
 
-          const routeSource = map.current.getSource('route') as maplibregl.GeoJSONSource;
-          if (routeSource) {
-            routeSource.setData(routeData);
+            const routeSource = map.current.getSource('route') as maplibregl.GeoJSONSource;
+            if (routeSource) {
+              routeSource.setData(routeData);
+            }
+
+            const bounds = new maplibregl.LngLatBounds();
+            bounds.extend(userLocation);
+            bounds.extend(nearest.geometry.coordinates as [number, number]);
+            map.current.fitBounds(bounds, { padding: 100 });
+
+            const distanceKm = (route.distance / 1000).toFixed(2);
+            const durationMin = Math.round(route.duration / 60);
+
+            new maplibregl.Popup()
+              .setLngLat(nearest.geometry.coordinates as [number, number])
+              .setHTML(`
+                <div class="p-2">
+                  <h3 class="font-bold">${nearest.properties.icon} ${nearest.properties.name}</h3>
+                  <p class="text-sm text-gray-600">🚗 ${t('map.distance')}: ${distanceKm} km</p>
+                  <p class="text-sm text-gray-600">⏱️ ${durationMin} min</p>
+                </div>
+              `)
+              .addTo(map.current);
+          } else {
+            throw new Error('OSRM routing failed');
           }
-
-          // Fit map to show both user and POI
-          const bounds = new maplibregl.LngLatBounds();
-          bounds.extend(userLocation);
-          bounds.extend(nearest.geometry.coordinates as [number, number]);
-          map.current.fitBounds(bounds, { padding: 100 });
-
-          // Show popup with distance
-          const distanceKm = (route.distance / 1000).toFixed(2);
-          const durationMin = Math.round(route.duration / 60);
-
-          new maplibregl.Popup()
-            .setLngLat(nearest.geometry.coordinates as [number, number])
-            .setHTML(`
-              <div class="p-2">
-                <h3 class="font-bold">${nearest.properties.icon} ${nearest.properties.name}</h3>
-                <p class="text-sm text-gray-600">${t('map.distance')}: ${distanceKm} km</p>
-                <p class="text-sm text-gray-600">${durationMin} min</p>
-              </div>
-            `)
-            .addTo(map.current);
         } else {
-          // Fallback to straight line if OSRM fails
+          // For walking, show straight line with accurate distance
+          // Calculate Haversine distance
+          const R = 6371; // Earth's radius in km
+          const dLat = (nearest.geometry.coordinates[1] - userLat) * Math.PI / 180;
+          const dLon = (nearest.geometry.coordinates[0] - userLon) * Math.PI / 180;
+          const a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(userLat * Math.PI / 180) * Math.cos(nearest.geometry.coordinates[1] * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+          const distanceKm = (R * c).toFixed(2);
+          const walkingSpeedKmH = 5; // Average walking speed
+          const durationMin = Math.round((R * c / walkingSpeedKmH) * 60);
+
           const routeData = {
             type: 'FeatureCollection' as const,
             features: [{
@@ -367,13 +374,24 @@ export default function MapView({ city }: { city: City }) {
             .setHTML(`
               <div class="p-2">
                 <h3 class="font-bold">${nearest.properties.icon} ${nearest.properties.name}</h3>
-                <p class="text-sm text-gray-600">${t('map.distance')}: ${(minDistance * 111).toFixed(2)} km</p>
+                <p class="text-sm text-gray-600">🚶 ${t('map.distance')}: ${distanceKm} km (прямая)</p>
+                <p class="text-sm text-gray-600">⏱️ ~${durationMin} min</p>
               </div>
             `)
             .addTo(map.current);
         }
       } catch (error) {
         console.error('Routing error:', error);
+        // Fallback to straight line
+        const R = 6371;
+        const dLat = (nearest.geometry.coordinates[1] - userLat) * Math.PI / 180;
+        const dLon = (nearest.geometry.coordinates[0] - userLon) * Math.PI / 180;
+        const a =
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos(userLat * Math.PI / 180) * Math.cos(nearest.geometry.coordinates[1] * Math.PI / 180) *
+          Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        const distanceKm = (R * c).toFixed(2);
         setError('Failed to calculate route');
       } finally {
         setLoading(false);
