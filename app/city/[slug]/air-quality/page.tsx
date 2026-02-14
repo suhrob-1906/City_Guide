@@ -16,6 +16,16 @@ interface AirQualityData {
     color: string;
     measuredAt: string;
     forecast?: { time: string; aqi: number; color: string }[];
+    components?: {
+        co: number;
+        no: number;
+        no2: number;
+        o3: number;
+        so2: number;
+        pm2_5: number;
+        pm10: number;
+        nh3: number;
+    };
 }
 
 export default function AirQualityPage() {
@@ -100,6 +110,47 @@ export default function AirQualityPage() {
                                     {getLocalizedLabel(data.label)}
                                 </h2>
                             </div>
+
+                            {/* Pollutants Breakdown */}
+                            {data.components && (
+                                <div className="mb-8">
+                                    <h3 className="text-lg font-semibold mb-4">{t('air.pollutants')}</h3>
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                        <div className="glass p-3 rounded-xl text-center">
+                                            <div className="text-xs text-gray-500 mb-1">{t('air.pm25')}</div>
+                                            <div className="font-bold text-lg">{data.components.pm2_5}</div>
+                                            <div className="text-xs text-gray-400">μg/m³</div>
+                                        </div>
+                                        <div className="glass p-3 rounded-xl text-center">
+                                            <div className="text-xs text-gray-500 mb-1">{t('air.pm10')}</div>
+                                            <div className="font-bold text-lg">{data.components.pm10}</div>
+                                            <div className="text-xs text-gray-400">μg/m³</div>
+                                        </div>
+                                        <div className="glass p-3 rounded-xl text-center">
+                                            <div className="text-xs text-gray-500 mb-1">{t('air.o3')}</div>
+                                            <div className="font-bold text-lg">{data.components.o3}</div>
+                                            <div className="text-xs text-gray-400">μg/m³</div>
+                                        </div>
+                                        <div className="glass p-3 rounded-xl text-center">
+                                            <div className="text-xs text-gray-500 mb-1">{t('air.no2')}</div>
+                                            <div className="font-bold text-lg">{data.components.no2}</div>
+                                            <div className="text-xs text-gray-400">μg/m³</div>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
+                                        <div className="glass p-3 rounded-xl text-center">
+                                            <div className="text-xs text-gray-500 mb-1">{t('air.so2')}</div>
+                                            <div className="font-bold text-lg">{data.components.so2}</div>
+                                            <div className="text-xs text-gray-400">μg/m³</div>
+                                        </div>
+                                        <div className="glass p-3 rounded-xl text-center">
+                                            <div className="text-xs text-gray-500 mb-1">{t('air.co')}</div>
+                                            <div className="font-bold text-lg">{data.components.co}</div>
+                                            <div className="text-xs text-gray-400">μg/m³</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Chart Visualization */}
                             {data.forecast && (

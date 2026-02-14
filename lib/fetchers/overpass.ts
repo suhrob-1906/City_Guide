@@ -23,16 +23,31 @@ export async function fetchPois(
     query: string
 ): Promise<PoiCollection> {
     const [minLon, minLat, maxLon, maxLat] = bbox;
+    const bboxStr = `(${minLat},${minLon},${maxLat},${maxLon})`;
 
-    // Parse query: "amenity=toilets" -> ["amenity", "toilets"]
-    const [key, value] = query.split('=');
+    // Support multiple queries separated by ';' (OR logic)
+    const queries = query.split(';').map(q => q.trim()).filter(Boolean);
+
+    let unionBody = '';
+
+    queries.forEach(q => {
+        if (q.includes('=')) {
+            const [key, value] = q.split('=');
+            // Clean up value in case it has quotes
+            const cleanValue = value.replace(/['"]/g, '');
+
+            unionBody += `
+                node["${key}"="${cleanValue}"]${bboxStr};
+                way["${key}"="${cleanValue}"]${bboxStr};
+                relation["${key}"="${cleanValue}"]${bboxStr};
+            `;
+        }
+    });
 
     const overpassQuery = `
     [out:json][timeout:25];
     (
-      node["${key}"="${value}"](${minLat},${minLon},${maxLat},${maxLon});
-      way["${key}"="${value}"](${minLat},${minLon},${maxLat},${maxLon});
-      relation["${key}"="${value}"](${minLat},${minLon},${maxLat},${maxLon});
+      ${unionBody}
     );
     out center;
   `;

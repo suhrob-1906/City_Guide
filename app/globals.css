@@ -127,3 +127,99 @@
 .maplibregl-popup-tip {
     border-top-color: rgba(17, 24, 39, 0.9) !important;
 }
+
+/* Mobile Optimizations */
+@media (max-width: 640px) {
+
+    /* Improve touch targets - minimum 44x44px */
+    button,
+    a,
+    input,
+    select {
+        min-height: 44px;
+        min-width: 44px;
+    }
+
+    /* Optimize glass effect for mobile performance */
+    .glass {
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+    }
+
+    /* Improve text readability on small screens */
+    body {
+        font-size: 16px;
+        /* Prevent zoom on iOS */
+        -webkit-text-size-adjust: 100%;
+    }
+
+    /* Better spacing for mobile */
+    .p-8 {
+        @apply p-4;
+    }
+
+    .p-6 {
+        @apply p-3;
+    }
+
+    /* Optimize map controls for mobile */
+    .maplibregl-ctrl-group {
+        @apply shadow-lg;
+    }
+
+    .maplibregl-ctrl-group button {
+        width: 44px !important;
+        height: 44px !important;
+        font-size: 18px !important;
+    }
+
+    /* Better popup sizing on mobile */
+    .maplibregl-popup-content {
+        max-width: 90vw !important;
+    }
+
+    /* Improve card spacing on mobile */
+    .grid {
+        gap: 1rem !important;
+    }
+
+    /* Optimize animations for mobile performance */
+    @media (prefers-reduced-motion: reduce) {
+        * {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+        }
+    }
+}
+
+/* Tablet optimizations */
+@media (min-width: 641px) and (max-width: 1024px) {
+
+    /* Optimize for tablet touch targets */
+    button,
+    a {
+        min-height: 40px;
+    }
+}
+
+/* Improve scrolling on mobile */
+@media (max-width: 640px) {
+    * {
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Prevent horizontal scroll */
+    body {
+        overflow-x: hidden;
+    }
+}
+
+/* Safe area insets for notched devices */
+@supports (padding: max(0px)) {
+    body {
+        padding-left: max(0px, env(safe-area-inset-left));
+        padding-right: max(0px, env(safe-area-inset-right));
+        padding-bottom: max(0px, env(safe-area-inset-bottom));
+    }
+}

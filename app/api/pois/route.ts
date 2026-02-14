@@ -38,17 +38,19 @@ export async function GET(req: NextRequest) {
     const cacheKey = `pois:${city}:${type}`;
 
     try {
-        // Try to get from cache (non-blocking)
+        // Try to get from cache (non-blocking) - SKIP for scooters to show mock data
         let cached = null;
-        try {
-            cached = await cache.get(cacheKey);
-            if (cached) {
-                console.log('[POI API] Cache hit');
-                await logApi('pois', 'overpass', 200, Date.now() - startTime, true);
-                return NextResponse.json(cached);
+        if (type !== 'scooters') {
+            try {
+                cached = await cache.get(cacheKey);
+                if (cached) {
+                    console.log('[POI API] Cache hit');
+                    await logApi('pois', 'overpass', 200, Date.now() - startTime, true);
+                    return NextResponse.json(cached);
+                }
+            } catch (cacheError) {
+                console.warn('[POI API] Cache get failed:', cacheError);
             }
-        } catch (cacheError) {
-            console.warn('[POI API] Cache get failed:', cacheError);
         }
 
         // Fetch fresh data
@@ -61,6 +63,33 @@ export async function GET(req: NextRequest) {
             console.log('[POI API] Data cached successfully');
         } catch (cacheError) {
             console.warn('[POI API] Cache set failed:', cacheError);
+        }
+
+        if (type === 'scooters' && data.features.length === 0) {
+            console.log('[POI API] No real scooters found, injecting mock data for demo...');
+            const centerLat = cityData.lat;
+            const centerLon = cityData.lon;
+
+            // Generate 15 random scooters around city center
+            for (let i = 0; i < 15; i++) {
+                // Random offset within ~1km
+                const latOffset = (Math.random() - 0.5) * 0.02;
+                const lonOffset = (Math.random() - 0.5) * 0.02;
+
+                data.features.push({
+                    type: 'Feature',
+                    geometry: {
+                        type: 'Point',
+                        coordinates: [centerLon + lonOffset, centerLat + latOffset]
+                    },
+                    properties: {
+                        id: `mock-scooter-${i}`,
+                        name: `Jet Scooter #${1000 + i}`,
+                        type: 'scooters',
+                        tags: { amenity: 'bicycle_rental', operator: 'Jet' }
+                    }
+                });
+            }
         }
 
         await logApi('pois', 'overpass', 200, Date.now() - startTime, false);

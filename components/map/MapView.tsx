@@ -6,23 +6,27 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { City } from '@/config/cities';
 import { POI_LAYERS } from '@/config/layers';
 import { PoiCollection } from '@/lib/fetchers/overpass';
-import { RefreshCw, Layers, Navigation, Car, PersonStanding } from 'lucide-react';
+import { RefreshCw, Layers, Navigation, Car, PersonStanding, MapPin, Volume2, VolumeX } from 'lucide-react';
 import { useLanguage } from '@/lib/language';
 import { useAutoRefresh } from '@/hooks/useAutoRefresh';
+import { useGeolocation } from '@/hooks/useGeolocation';
+import { getRoute, calculateStraightLine } from '@/lib/fetchers/openroute';
+import { NavigationOverlay } from './NavigationOverlay';
 
 export default function MapView({ city }: { city: City }) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
+  const userMarker = useRef<maplibregl.Marker | null>(null);
   const [selectedLayer, setSelectedLayer] = useState(POI_LAYERS[0].id);
   const [loading, setLoading] = useState(false);
   const [pois, setPois] = useState<PoiCollection | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [rateLimitWait, setRateLimitWait] = useState(0);
-  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [nearestPOI, setNearestPOI] = useState<any | null>(null);
   const [transportMode, setTransportMode] = useState<'driving' | 'walking'>('walking');
   const { t } = useLanguage();
   const refreshTick = useAutoRefresh(600000); // 10 minutes
+  const { location: userLocation, permissionState, requestLocation, error: geoError, isLoading: geoLoading } = useGeolocation();
 
   // Initialize map
   useEffect(() => {
@@ -40,21 +44,6 @@ export default function MapView({ city }: { city: City }) {
 
       map.current = mapInstance;
       mapInstance.addControl(new maplibregl.NavigationControl(), 'top-right');
-
-      // Add Geolocation Control
-      const geolocate = new maplibregl.GeolocateControl({
-        positionOptions: {
-          enableHighAccuracy: true
-        },
-        trackUserLocation: true,
-        showUserLocation: true
-      });
-      mapInstance.addControl(geolocate, 'top-right');
-
-      // Track user location
-      geolocate.on('geolocate', (e: any) => {
-        setUserLocation([e.coords.longitude, e.coords.latitude]);
-      });
 
       // Suppress sprite warnings for base map style
       mapInstance.on('styleimagemissing', (e) => {
@@ -106,15 +95,6 @@ export default function MapView({ city }: { city: City }) {
         }
 
         setupMapLayers();
-
-        // Always request geolocation on first visit to city page
-        const hasRequestedLocation = sessionStorage.getItem(`map-geo-${city.slug}`);
-        if (!hasRequestedLocation) {
-          setTimeout(() => {
-            geolocate.trigger();
-            sessionStorage.setItem(`map-geo-${city.slug}`, 'true');
-          }, 1000);
-        }
       });
     } catch (e) {
       console.error('Map initialization error:', e);
@@ -126,6 +106,141 @@ export default function MapView({ city }: { city: City }) {
       map.current = null;
     };
   }, [city]);
+
+  const [routeSteps, setRouteSteps] = useState<any[]>([]);
+  const [isAudioEnabled, setIsAudioEnabled] = useState(false);
+  const [lastSpokenIndex, setLastSpokenIndex] = useState(-1);
+  // Navigation State
+  const [navInstruction, setNavInstruction] = useState('');
+  const [navDistance, setNavDistance] = useState(0);
+  const [navType, setNavType] = useState(0);
+  const [showNavOverlay, setShowNavOverlay] = useState(false);
+
+  const speechSynth = useRef<SpeechSynthesis | null>(null);
+
+  // Initialize speech synthesis
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      speechSynth.current = window.speechSynthesis;
+    }
+  }, []);
+
+  // Speak instruction
+  const speak = useCallback((text: string) => {
+    if (!speechSynth.current || !isAudioEnabled) return;
+
+    // Cancel current speech to prevent queue buildup
+    speechSynth.current.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    // Try to set Russian voice if available, otherwise default
+    const voices = speechSynth.current.getVoices();
+    const ruVoice = voices.find(v => v.lang.includes('ru'));
+    if (ruVoice) utterance.voice = ruVoice;
+
+    speechSynth.current.speak(utterance);
+  }, [isAudioEnabled]);
+
+  // Update user location marker on map and center map
+  useEffect(() => {
+    if (!map.current || !userLocation) return;
+
+    // Remove existing marker if any
+    if (userMarker.current) {
+      userMarker.current.remove();
+    }
+
+    // Create new marker for user location
+    const el = document.createElement('div');
+    el.className = 'user-location-marker';
+    el.style.width = '24px';
+    el.style.height = '24px';
+    el.style.borderRadius = '50%';
+    el.style.backgroundColor = '#4285F4';
+    el.style.border = '3px solid white';
+    el.style.boxShadow = '0 0 10px rgba(66, 133, 244, 0.5)';
+    // Add direction indicator if heading is available (advanced)
+
+    userMarker.current = new maplibregl.Marker({ element: el })
+      .setLngLat(userLocation)
+      .addTo(map.current);
+
+    // console.log('[Map] User location marker updated:', userLocation);
+
+    // Check for navigation instructions
+    // Check for navigation instructions
+    if (routeSteps.length > 0) {
+      let nextStepIndex = -1;
+      let minDist = Infinity;
+
+      // Find the next relevant step (simple nearest logic for now)
+      // In a real app, we'd project position onto the route line
+      for (let i = lastSpokenIndex + 1; i < routeSteps.length; i++) {
+        const step = routeSteps[i];
+        const stepLoc = step.way_points;
+        const dist = calculateStraightLine(userLocation, stepLoc as [number, number]).distance;
+
+        // If we are very close to a step, it's the current one
+        if (dist < minDist) {
+          minDist = dist;
+          nextStepIndex = i;
+        }
+      }
+
+      if (nextStepIndex !== -1) {
+        const step = routeSteps[nextStepIndex];
+        const stepLoc = step.way_points;
+        const dist = calculateStraightLine(userLocation, stepLoc as [number, number]).distance;
+
+        // Localize instruction
+        let localizedInstruction = step.instruction;
+        const instrLower = String(step.instruction).toLowerCase();
+
+        if (instrLower.includes('arrive') || instrLower.includes('dest')) localizedInstruction = t('nav.arrive');
+        else if (instrLower.includes('sharp right') || instrLower.includes('резко направо')) localizedInstruction = t('nav.turnSharpRight');
+        else if (instrLower.includes('sharp left') || instrLower.includes('резко налево')) localizedInstruction = t('nav.turnSharpLeft');
+        else if (instrLower.includes('slight right') || instrLower.includes('правее')) localizedInstruction = t('nav.turnSlightRight');
+        else if (instrLower.includes('slight left') || instrLower.includes('левее')) localizedInstruction = t('nav.turnSlightLeft');
+        else if (instrLower.includes('right') || instrLower.includes('направо')) localizedInstruction = t('nav.turnRight');
+        else if (instrLower.includes('left') || instrLower.includes('налево')) localizedInstruction = t('nav.turnLeft');
+        else if (instrLower.includes('u-turn') || instrLower.includes('разворот')) localizedInstruction = t('nav.uTurn');
+        else if (instrLower.includes('straight') || instrLower.includes('прямо')) localizedInstruction = t('nav.straight');
+        else if (instrLower.includes('roundabout') || instrLower.includes('кругов')) localizedInstruction = t('nav.roundabout');
+        else if (instrLower.includes('head to') || instrLower.includes('направляйтесь к')) localizedInstruction = t('nav.depart');
+        else if (instrLower.includes('north') && instrLower.includes('east') || instrLower.includes('северо-восток')) localizedInstruction = t('nav.headNE');
+        else if (instrLower.includes('north') && instrLower.includes('west') || instrLower.includes('северо-запад')) localizedInstruction = t('nav.headNW');
+        else if (instrLower.includes('south') && instrLower.includes('east') || instrLower.includes('юго-восток')) localizedInstruction = t('nav.headSE');
+        else if (instrLower.includes('south') && instrLower.includes('west') || instrLower.includes('юго-запад')) localizedInstruction = t('nav.headSW');
+        else if (instrLower.includes('north') || instrLower.includes('север')) localizedInstruction = t('nav.headNorth');
+        else if (instrLower.includes('south') || instrLower.includes('юг')) localizedInstruction = t('nav.headSouth');
+        else if (instrLower.includes('east') || instrLower.includes('восток')) localizedInstruction = t('nav.headEast');
+        else if (instrLower.includes('west') || instrLower.includes('запад')) localizedInstruction = t('nav.headWest');
+
+        setNavInstruction(localizedInstruction);
+        setNavDistance(dist);
+        setNavType(typeof step.instruction === 'number' ? step.instruction : 0);
+        setShowNavOverlay(true);
+
+        if (isAudioEnabled) {
+          // Logic for announcements
+          // 1. Pre-announce at 300m (if not spoken yet)
+          // 2. Announce at 50m (turn now)
+
+          if (dist < 50 && lastSpokenIndex < nextStepIndex) {
+            // Speak translated text
+            speak(localizedInstruction);
+            setLastSpokenIndex(nextStepIndex);
+          } else if (dist < 300 && dist > 250 && lastSpokenIndex < nextStepIndex - 0.5) {
+            // Pre-announcement: "In 300 meters, turn right"
+            const lang = typeof window !== 'undefined' ? localStorage.getItem('language') : 'en';
+            const prefix = lang === 'ru' ? 'Через 300 метров ' : 'In 300 meters ';
+            speak(prefix + localizedInstruction);
+            setLastSpokenIndex(nextStepIndex - 0.5); // Use fractional index to mark pre-announcement
+          }
+        }
+      }
+    }
+  }, [userLocation, routeSteps, isAudioEnabled, lastSpokenIndex, speak, t]);
 
   // Setup map layers
   const setupMapLayers = useCallback(() => {
@@ -198,9 +313,27 @@ export default function MapView({ city }: { city: City }) {
       },
       paint: {
         'line-color': '#3b82f6',
-        'line-width': 4,
+        'line-width': 5,
         'line-opacity': 0.8,
       },
+      filter: ['!=', 'mode', 'walking']
+    });
+
+    map.current.addLayer({
+      id: 'route-line-walking',
+      type: 'line',
+      source: 'route',
+      layout: {
+        'line-join': 'round',
+        'line-cap': 'round',
+      },
+      paint: {
+        'line-color': '#3b82f6',
+        'line-width': 5,
+        'line-opacity': 0.8,
+        'line-dasharray': [0, 2], // Dotted line
+      },
+      filter: ['==', 'mode', 'walking']
     });
 
     console.log('[Map] Setup POI layers with Pins');
@@ -302,7 +435,7 @@ export default function MapView({ city }: { city: City }) {
               features: [{
                 type: 'Feature' as const,
                 geometry: route.geometry,
-                properties: {}
+                properties: { mode: 'driving' }
               }]
             };
 
@@ -333,71 +466,169 @@ export default function MapView({ city }: { city: City }) {
             throw new Error('OSRM routing failed');
           }
         } else {
-          // For walking, show straight line with accurate distance
-          // Calculate Haversine distance
-          const R = 6371; // Earth's radius in km
-          const dLat = (nearest.geometry.coordinates[1] - userLat) * Math.PI / 180;
-          const dLon = (nearest.geometry.coordinates[0] - userLon) * Math.PI / 180;
-          const a =
-            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(userLat * Math.PI / 180) * Math.cos(nearest.geometry.coordinates[1] * Math.PI / 180) *
-            Math.sin(dLon / 2) * Math.sin(dLon / 2);
-          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-          const distanceKm = (R * c).toFixed(2);
-          const walkingSpeedKmH = 5; // Average walking speed
-          const durationMin = Math.round((R * c / walkingSpeedKmH) * 60);
+          // For walking, use OpenRouteService API for real pedestrian routing
+          try {
+            const route = await getRoute({
+              start: [userLon, userLat],
+              end: nearest.geometry.coordinates,
+              profile: 'foot-walking',
+            });
 
-          const routeData = {
-            type: 'FeatureCollection' as const,
-            features: [{
-              type: 'Feature' as const,
-              geometry: {
-                type: 'LineString' as const,
-                coordinates: [userLocation, nearest.geometry.coordinates]
-              },
-              properties: {}
-            }]
-          };
+            if (route) {
+              // Successfully got pedestrian route from API
+              const routeData = {
+                type: 'FeatureCollection' as const,
+                features: [{
+                  type: 'Feature' as const,
+                  geometry: route.geometry,
+                  properties: { mode: 'walking' }
+                }]
+              };
 
-          const routeSource = map.current.getSource('route') as maplibregl.GeoJSONSource;
-          if (routeSource) {
-            routeSource.setData(routeData);
+              const routeSource = map.current.getSource('route') as maplibregl.GeoJSONSource;
+              if (routeSource) {
+                routeSource.setData(routeData);
+              }
+
+              const bounds = new maplibregl.LngLatBounds();
+              bounds.extend(userLocation);
+              bounds.extend(nearest.geometry.coordinates as [number, number]);
+              map.current.fitBounds(bounds, { padding: 100 });
+
+              const distanceKm = (route.distance / 1000).toFixed(2);
+              const durationMin = Math.round(route.duration / 60);
+
+              setRouteSteps(route.steps || []);
+
+
+              new maplibregl.Popup()
+                .setLngLat(nearest.geometry.coordinates as [number, number])
+                .setHTML(`
+                  <div class="p-2">
+                    <h3 class="font-bold">${nearest.properties.icon} ${nearest.properties.name}</h3>
+                    <p class="text-sm text-gray-600">🚶 ${t('map.distance')}: ${distanceKm} km</p>
+                    <p class="text-sm text-gray-600">⏱️ ${durationMin} min</p>
+                  </div>
+                `)
+                .addTo(map.current);
+            } else {
+              // Fallback to straight-line if API fails
+              console.warn('[Map] OpenRouteService failed, using straight-line fallback');
+              const fallbackRoute = calculateStraightLine(
+                [userLon, userLat],
+                nearest.geometry.coordinates
+              );
+
+              const routeData = {
+                type: 'FeatureCollection' as const,
+                features: [{
+                  type: 'Feature' as const,
+                  geometry: fallbackRoute.geometry,
+                  properties: { mode: 'walking' }
+                }]
+              };
+
+              const routeSource = map.current.getSource('route') as maplibregl.GeoJSONSource;
+              if (routeSource) {
+                routeSource.setData(routeData);
+              }
+
+              // Fallback guide
+              setRouteSteps([{
+                instruction: 'Направляйтесь к точке назначения',
+                distance: fallbackRoute.distance,
+                duration: fallbackRoute.duration,
+                type: 0,
+                name: 'Destination',
+                way_points: nearest.geometry.coordinates as [number, number]
+              }]);
+
+              const bounds = new maplibregl.LngLatBounds();
+              bounds.extend(userLocation);
+              bounds.extend(nearest.geometry.coordinates as [number, number]);
+              map.current.fitBounds(bounds, { padding: 100 });
+
+              const distanceKm = (fallbackRoute.distance / 1000).toFixed(2);
+              const durationMin = Math.round(fallbackRoute.duration / 60);
+
+              new maplibregl.Popup()
+                .setLngLat(nearest.geometry.coordinates as [number, number])
+                .setHTML(`
+                  <div class="p-2">
+                    <h3 class="font-bold">${nearest.properties.icon} ${nearest.properties.name}</h3>
+                    <p class="text-sm text-gray-600">🚶 ${t('map.distance')}: ${distanceKm} km (${t('map.straightLine')})</p>
+                    <p class="text-sm text-gray-600">⏱️ ~${durationMin} min</p>
+                  </div>
+                `)
+                .addTo(map.current);
+            }
+          } catch (error) {
+            console.error('[Map] Pedestrian routing error:', error);
+            // Use straight-line as final fallback
+            const fallbackRoute = calculateStraightLine(
+              [userLon, userLat],
+              nearest.geometry.coordinates
+            );
+
+            const routeData = {
+              type: 'FeatureCollection' as const,
+              features: [{
+                type: 'Feature' as const,
+                geometry: fallbackRoute.geometry,
+                properties: { mode: 'walking' }
+              }]
+            };
+
+            const routeSource = map.current.getSource('route') as maplibregl.GeoJSONSource;
+            if (routeSource) {
+              routeSource.setData(routeData);
+            }
+
+            // Fallback guide
+            setRouteSteps([{
+              instruction: 'Направляйтесь к точке назначения',
+              distance: fallbackRoute.distance,
+              duration: fallbackRoute.duration,
+              type: 0,
+              name: 'Destination',
+              way_points: nearest.geometry.coordinates as [number, number]
+            }]);
+
+            const bounds = new maplibregl.LngLatBounds();
+            bounds.extend(userLocation);
+            bounds.extend(nearest.geometry.coordinates as [number, number]);
+            map.current.fitBounds(bounds, { padding: 100 });
+
+            const distanceKm = (fallbackRoute.distance / 1000).toFixed(2);
+            const durationMin = Math.round(fallbackRoute.distance / 60);
+
+            new maplibregl.Popup()
+              .setLngLat(nearest.geometry.coordinates as [number, number])
+              .setHTML(`
+                <div class="p-2">
+                  <h3 class="font-bold">${nearest.properties.icon} ${nearest.properties.name}</h3>
+                  <p class="text-sm text-gray-600">🚶 ${t('map.distance')}: ${distanceKm} km (${t('map.straightLine')})</p>
+                  <p class="text-sm text-gray-600">⏱️ ~${durationMin} min</p>
+                </div>
+              `)
+              .addTo(map.current);
           }
-
-          const bounds = new maplibregl.LngLatBounds();
-          bounds.extend(userLocation);
-          bounds.extend(nearest.geometry.coordinates as [number, number]);
-          map.current.fitBounds(bounds, { padding: 100 });
-
-          new maplibregl.Popup()
-            .setLngLat(nearest.geometry.coordinates as [number, number])
-            .setHTML(`
-              <div class="p-2">
-                <h3 class="font-bold">${nearest.properties.icon} ${nearest.properties.name}</h3>
-                <p class="text-sm text-gray-600">🚶 ${t('map.distance')}: ${distanceKm} km (прямая)</p>
-                <p class="text-sm text-gray-600">⏱️ ~${durationMin} min</p>
-              </div>
-            `)
-            .addTo(map.current);
         }
       } catch (error) {
         console.error('Routing error:', error);
-        // Fallback to straight line
-        const R = 6371;
-        const dLat = (nearest.geometry.coordinates[1] - userLat) * Math.PI / 180;
-        const dLon = (nearest.geometry.coordinates[0] - userLon) * Math.PI / 180;
-        const a =
-          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-          Math.cos(userLat * Math.PI / 180) * Math.cos(nearest.geometry.coordinates[1] * Math.PI / 180) *
-          Math.sin(dLon / 2) * Math.sin(dLon / 2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        const distanceKm = (R * c).toFixed(2);
         setError('Failed to calculate route');
       } finally {
         setLoading(false);
       }
     }
   }, [userLocation, pois, transportMode, t]);
+
+  // Auto-recalculate route when transport mode changes
+  useEffect(() => {
+    if (userLocation && pois?.features.length) {
+      findNearest();
+    }
+  }, [transportMode, userLocation, pois]); // Dependencies triggering update
 
   // Fetch POIs
   const fetchPois = useCallback(async () => {
@@ -458,6 +689,8 @@ export default function MapView({ city }: { city: City }) {
 
       setPois(validData);
 
+      if (!map.current) return;
+
       const source = map.current.getSource('pois');
       if (source) {
         (source as maplibregl.GeoJSONSource).setData(validData);
@@ -490,13 +723,16 @@ export default function MapView({ city }: { city: City }) {
       'hospitals': t('map.hospitals'),
       'wheelchair': t('map.wheelchair'),
       'clinics': t('map.clinics'),
+      'scooters': t('map.scooters'),
     };
     return layerMap[layerId] || layerId;
   };
 
   return (
-    <div className="glass rounded-2xl overflow-hidden">
+    <div className="glass rounded-2xl overflow-hidden relative">
+
       <div className="p-3 sm:p-4 border-b border-white/20">
+
         <div className="flex items-center justify-between mb-2 sm:mb-3">
           <div className="flex items-center gap-2">
             <Layers className="w-5 h-5" />
@@ -515,50 +751,101 @@ export default function MapView({ city }: { city: City }) {
               </option>
             ))}
           </select>
-          <div className="flex gap-2 w-full sm:w-auto">
-            <div className="flex gap-1 bg-white/50 rounded-lg p-1">
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            {/* Enable Location Button */}
+            <button
+              onClick={requestLocation}
+              disabled={permissionState === 'granted' || permissionState === 'unavailable' || geoLoading}
+              className={`px-3 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm font-medium whitespace-nowrap ${permissionState === 'granted'
+                ? 'bg-green-500 text-white cursor-default'
+                : permissionState === 'denied'
+                  ? 'bg-red-500 text-white cursor-not-allowed'
+                  : permissionState === 'unavailable'
+                    ? 'bg-gray-400 text-white cursor-not-allowed'
+                    : 'bg-blue-500 text-white hover:bg-blue-600'
+                }`}
+              title={
+                permissionState === 'denied'
+                  ? 'Location access denied. Please enable in browser settings.'
+                  : permissionState === 'unavailable'
+                    ? 'Geolocation not supported by your browser'
+                    : geoError || t('map.enableLocation')
+              }
+            >
+              <MapPin className={`w-4 h-4 ${geoLoading ? 'animate-pulse' : ''}`} />
+              <span className="hidden sm:inline">
+                {permissionState === 'granted'
+                  ? t('map.locationEnabled')
+                  : permissionState === 'denied'
+                    ? t('map.locationDenied')
+                    : permissionState === 'unavailable'
+                      ? t('map.locationUnavailable')
+                      : geoLoading
+                        ? 'Loading...'
+                        : t('map.enableLocation')}
+              </span>
+            </button>
+            <div className="flex gap-2 w-full sm:w-auto">
+              <div className="flex gap-1 bg-white/50 rounded-lg p-1">
+                <button
+                  onClick={() => setTransportMode('walking')}
+                  className={`px-3 py-2 rounded transition-colors ${transportMode === 'walking'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-transparent text-gray-600 hover:bg-white/50'
+                    }`}
+                  title={t('map.walking')}
+                >
+                  <PersonStanding className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setTransportMode('driving')}
+                  className={`px-3 py-2 rounded transition-colors ${transportMode === 'driving'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-transparent text-gray-600 hover:bg-white/50'
+                    }`}
+                  title={t('map.driving')}
+                >
+                  <Car className="w-4 h-4" />
+                </button>
+              </div>
               <button
-                onClick={() => setTransportMode('walking')}
-                className={`px-3 py-2 rounded transition-colors ${transportMode === 'walking'
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-transparent text-gray-600 hover:bg-white/50'
-                  }`}
-                title={t('map.walking')}
+                onClick={findNearest}
+                disabled={!userLocation || !pois?.features.length || loading}
+                className="flex-1 sm:flex-initial px-3 py-2 rounded-lg bg-green-500 text-white hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1.5 text-sm font-medium whitespace-nowrap"
+                title={t('map.findNearest')}
               >
-                <PersonStanding className="w-4 h-4" />
+                <Navigation className="w-4 h-4" />
+                <span className="hidden xs:inline sm:inline">{t('map.findNearest')}</span>
               </button>
               <button
-                onClick={() => setTransportMode('driving')}
-                className={`px-3 py-2 rounded transition-colors ${transportMode === 'driving'
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-transparent text-gray-600 hover:bg-white/50'
-                  }`}
-                title={t('map.driving')}
+                onClick={fetchPois}
+                disabled={loading || rateLimitWait > 0}
+                className="px-3 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                title={rateLimitWait > 0 ? `${t('map.rateLimit')} ${rateLimitWait}${t('map.seconds')}` : t('map.refresh')}
               >
-                <Car className="w-4 h-4" />
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              </button>
+              <button
+                onClick={() => setIsAudioEnabled(!isAudioEnabled)}
+                className={`px-3 py-2 rounded-lg transition-colors flex items-center gap-2 shadow-sm ${isAudioEnabled ? 'bg-blue-600 text-white shadow-blue-200' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'}`}
+                title={isAudioEnabled ? "Disable Voice Guidance" : "Enable Voice Guidance"}
+              >
+                {isAudioEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+                <span className="text-sm font-medium hidden sm:inline">{isAudioEnabled ? t('nav.voiceOn') : t('nav.voiceOff')}</span>
               </button>
             </div>
-            <button
-              onClick={findNearest}
-              disabled={!userLocation || !pois?.features.length || loading}
-              className="flex-1 sm:flex-initial px-3 py-2 rounded-lg bg-green-500 text-white hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1.5 text-sm font-medium whitespace-nowrap"
-              title={t('map.findNearest')}
-            >
-              <Navigation className="w-4 h-4" />
-              <span className="hidden xs:inline sm:inline">{t('map.findNearest')}</span>
-            </button>
-            <button
-              onClick={fetchPois}
-              disabled={loading || rateLimitWait > 0}
-              className="px-3 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              title={rateLimitWait > 0 ? `${t('map.rateLimit')} ${rateLimitWait}${t('map.seconds')}` : t('map.refresh')}
-            >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            </button>
           </div>
         </div>
       </div>
-      <div ref={mapContainer} className="h-[400px] sm:h-[500px] w-full" />
+      <div className="relative w-full">
+        <NavigationOverlay
+          instruction={navInstruction}
+          distance={navDistance}
+          type={navType}
+          isVisible={showNavOverlay && routeSteps.length > 0}
+        />
+        <div ref={mapContainer} className="h-[400px] sm:h-[500px] w-full" />
+      </div>
       {error && (
         <div className="p-3 text-xs sm:text-sm text-red-600 border-t border-white/20 bg-red-50">
           {error} {rateLimitWait > 0 && `(${rateLimitWait}${t('map.seconds')})`}

@@ -2,6 +2,16 @@ export interface AirQualityData {
     aqi: number;
     label: string;
     color: string;
+    components?: {
+        co: number;
+        no: number;
+        no2: number;
+        o3: number;
+        so2: number;
+        pm2_5: number;
+        pm10: number;
+        nh3: number;
+    };
     source: string;
     measuredAt: string;
     fetchedAt: string;
@@ -19,11 +29,13 @@ export async function fetchAirQuality(lat: number, lon: number): Promise<AirQual
 
     const data = await res.json();
     const aqi = data.list[0].main.aqi;
+    const components = data.list[0].components;
 
     return {
         aqi,
         label: getAqiLabel(aqi),
         color: getAqiColor(aqi),
+        components,
         source: 'OpenWeather',
         measuredAt: new Date(data.list[0].dt * 1000).toISOString(),
         fetchedAt: new Date().toISOString(),

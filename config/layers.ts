@@ -40,4 +40,21 @@ export const POI_LAYERS: PoiLayer[] = [
         color: '#8b5cf6',
         overpassQuery: 'amenity=clinic',
     },
+    {
+        id: 'scooters',
+        name: 'Electric Scooters',
+        nameRu: 'Электросамокаты',
+        icon: '🛴',
+        color: '#f59e0b',
+        // Query for scooter rental/sharing stations and parking
+        overpassQuery: 'amenity=bicycle_rental;amenity=charging_station',
+    },
+    {
+        id: 'rent_car',
+        name: 'Rent Car',
+        nameRu: 'Аренда авто',
+        icon: '🚗',
+        color: '#ef4444',
+        overpassQuery: 'amenity=car_rental',
+    },
 ];
