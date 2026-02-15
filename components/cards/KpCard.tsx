@@ -24,7 +24,7 @@ export default function KpCard() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
     const { t, language } = useLanguage();
-    const refreshTick = useAutoRefresh(600000); // 10 minutes
+    const { tick } = useAutoRefresh(60000); // 1 minute
 
     useEffect(() => {
         async function fetchData() {
@@ -41,7 +41,7 @@ export default function KpCard() {
             }
         }
         fetchData();
-    }, [refreshTick]);
+    }, [tick]);
 
     const getLocalizedLevel = (level: string) => {
         const levelMap: Record<string, string> = {

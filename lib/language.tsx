@@ -141,14 +141,19 @@ const translations = {
         'map.wheelchair': 'Wheelchair Access',
         'map.clinics': 'Clinics',
         'map.scooters': 'Electric Scooters',
+        'map.rent_car': 'Rent Car',
+        'map.parking': 'Parking',
         'map.found': 'Found',
         'map.locations': 'locations',
         'map.updated': 'Updated',
         'map.loading': 'Loading POI data...',
+        'map.loadingMap': 'Loading Map...',
+        'map.errorRouting': 'Failed to calculate route',
         'map.rateLimit': 'Please wait before refreshing',
         'map.seconds': 's',
         'map.viewDetails': 'View Details',
         'map.findNearest': 'Find Nearest',
+        'map.lastUpdate': 'Last update',
         'map.routeToNearest': 'Route to nearest',
         'map.distance': 'Distance',
         'map.noLocation': 'Enable location to find nearest',
@@ -159,6 +164,13 @@ const translations = {
         'map.locationEnabled': 'Location Enabled',
         'map.locationDenied': 'Location Denied',
         'map.locationUnavailable': 'Location Unavailable',
+
+        // Navigation (Dynamic)
+        'nav.in': 'In',
+        'nav.meters': 'meters',
+        'nav.kilometers': 'km',
+        'nav.then': 'then',
+        'nav.destination': 'You will arrive at your destination',
 
         // Weather (Additional)
         'weather.feelsLike': 'Feels like',
@@ -317,14 +329,19 @@ const translations = {
         'map.wheelchair': 'Доступ для инвалидных колясок',
         'map.clinics': 'Поликлиники',
         'map.scooters': 'Электросамокаты',
+        'map.rent_car': 'Аренда авто',
+        'map.parking': 'Парковка',
         'map.found': 'Найдено',
         'map.locations': 'мест',
         'map.updated': 'Обновлено',
         'map.loading': 'Загрузка данных POI...',
+        'map.loadingMap': 'Загрузка карты...',
+        'map.errorRouting': 'Не удалось построить маршрут',
         'map.rateLimit': 'Подождите перед обновлением',
         'map.seconds': 'с',
         'map.viewDetails': 'Подробнее',
         'map.findNearest': 'Найти ближайший',
+        'map.lastUpdate': 'Последнее обновление',
         'map.routeToNearest': 'Маршрут к ближайшему',
         'map.distance': 'Расстояние',
         'map.noLocation': 'Включите геолокацию для поиска',
@@ -335,6 +352,13 @@ const translations = {
         'map.locationEnabled': 'Геолокация включена',
         'map.locationDenied': 'Доступ запрещен',
         'map.locationUnavailable': 'Геолокация недоступна',
+
+        // Navigation (Dynamic)
+        'nav.in': 'Через',
+        'nav.meters': 'метров',
+        'nav.kilometers': 'км',
+        'nav.then': 'затем',
+        'nav.destination': 'Вы прибудете в пункт назначения',
 
         // Weather (Additional)
         'weather.feelsLike': 'Ощущается как',
@@ -381,29 +405,23 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
         setIsClient(true);
         // Load saved language from localStorage
         const saved = localStorage.getItem('language') as Language;
-        console.log('[Language] Loading from localStorage:', saved);
         if (saved && (saved === 'en' || saved === 'ru')) {
             setLanguageState(saved);
-            console.log('[Language] Set initial language to:', saved);
         }
     }, []);
 
     const setLanguage = useCallback((lang: Language) => {
-        console.log('[Language] setLanguage called with:', lang);
-        console.log('[Language] Current language:', language);
         setLanguageState(lang);
         if (typeof window !== 'undefined') {
             localStorage.setItem('language', lang);
-            console.log('[Language] Saved to localStorage:', lang);
         }
-    }, [language]);
+    }, []);
 
     const t = useCallback((key: string): string => {
         return translations[language][key as keyof typeof translations['en']] || key;
     }, [language]);
 
     const value = useMemo(() => {
-        console.log('[Language] Context value updated, language:', language);
         return { language, setLanguage, t };
     }, [language, setLanguage, t]);
 

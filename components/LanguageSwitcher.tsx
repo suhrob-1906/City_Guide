@@ -10,7 +10,6 @@ export default function LanguageSwitcher() {
 
     useEffect(() => {
         setMounted(true);
-        console.log('[LanguageSwitcher] Mounted, current language:', language);
     }, [language]);
 
     // Don't render on server to avoid hydration mismatch
@@ -19,7 +18,6 @@ export default function LanguageSwitcher() {
     }
 
     const handleLanguageChange = (lang: 'en' | 'ru') => {
-        console.log('[LanguageSwitcher] Button clicked, changing to:', lang);
         setLanguage(lang);
     };
 

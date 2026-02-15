@@ -57,4 +57,12 @@ export const POI_LAYERS: PoiLayer[] = [
         color: '#ef4444',
         overpassQuery: 'amenity=car_rental',
     },
+    {
+        id: 'parking',
+        name: 'Parking',
+        nameRu: 'Парковка',
+        icon: '🅿️',
+        color: '#3b82f6',
+        overpassQuery: 'amenity=parking',
+    },
 ];

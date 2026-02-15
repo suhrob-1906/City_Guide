@@ -30,8 +30,8 @@ export const NavigationOverlay: React.FC<NavigationOverlayProps> = ({
     };
 
     return (
-        <div className="absolute top-4 left-4 z-[20] flex flex-col gap-2 pointer-events-none max-w-[calc(100%-2rem)] sm:max-w-sm w-full">
-            <div className="bg-slate-900/90 backdrop-blur-md text-white p-3 rounded-xl shadow-2xl border border-white/10 flex items-center gap-3 animate-in slide-in-from-top-4 duration-300">
+        <div className="absolute bottom-4 left-4 right-4 z-[20] flex flex-col gap-2 pointer-events-none max-w-full sm:max-w-md mx-auto">
+            <div className="bg-slate-900/90 backdrop-blur-md text-white p-3 rounded-xl shadow-2xl border border-white/10 flex items-center gap-3 animate-in slide-in-from-bottom-4 duration-300">
                 <div className="bg-blue-600 p-2 rounded-lg shadow-lg shadow-blue-500/30 shrink-0">
                     {getIcon()}
                 </div>

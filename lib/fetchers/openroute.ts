@@ -56,6 +56,8 @@ export interface RouteResult {
 
 /**
  * Get pedestrian or driving route from OpenRouteService
+ * For walking: Uses ORS foot-walking profile which respects sidewalks and pedestrian paths
+ * For driving: Falls back to OSRM if ORS fails
  */
 export async function getRoute(options: RouteOptions): Promise<RouteResult | null> {
     const { start, end, profile = 'foot-walking', language = 'en' } = options;
@@ -81,14 +83,23 @@ export async function getRoute(options: RouteOptions): Promise<RouteResult | nul
                 const feature = data.features[0];
                 const rawSteps = feature.properties.segments?.[0]?.steps || [];
                 // ORS V2 returns way_points as [startIndex, endIndex] indices into geometry
-                const steps = rawSteps.map((s: any) => ({
-                    distance: s.distance,
-                    duration: s.duration,
-                    type: s.type,
-                    instruction: s.instruction,
-                    name: s.name,
-                    way_points: feature.geometry.coordinates[s.way_points[0]] as [number, number]
-                }));
+                const steps = rawSteps.map((s: any) => {
+                    let point: [number, number] = [0, 0];
+                    if (s.way_points && Array.isArray(s.way_points) && s.way_points.length > 0) {
+                        const idx = s.way_points[0];
+                        if (feature.geometry.coordinates[idx]) {
+                            point = feature.geometry.coordinates[idx] as [number, number];
+                        }
+                    }
+                    return {
+                        distance: s.distance,
+                        duration: s.duration,
+                        type: s.type,
+                        instruction: s.instruction,
+                        name: s.name,
+                        way_points: point
+                    };
+                });
 
                 return {
                     geometry: {
@@ -102,40 +113,40 @@ export async function getRoute(options: RouteOptions): Promise<RouteResult | nul
             }
         }
 
-        console.warn('[Routing] OpenRouteService failed or empty, trying OSRM fallback...');
+        // 2. For DRIVING ONLY: Fallback to OSRM
+        // For WALKING: Do NOT use OSRM as it routes along car roads, not pedestrian paths
+        if (profile === 'driving-car') {
+            console.warn('[Routing] OpenRouteService failed for driving, trying OSRM fallback...');
 
-        // 2. Fallback to OSRM (Open Source Routing Machine) - Public Demo API
-        // Note: usage policy applies, but good for demo/fallback
-        // OSRM doesn't provide the same step structure easily compatible with ORS without mapping,
-        // so we might skip steps for fallback or map them if needed. For now, simple fallback.
-        const osrmProfile = profile === 'driving-car' ? 'driving' : 'foot';
-        const osrmUrl = `https://router.project-osrm.org/route/v1/${osrmProfile}/${start[0]},${start[1]};${end[0]},${end[1]}?overview=full&geometries=geojson&steps=true`;
+            const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${start[0]},${start[1]};${end[0]},${end[1]}?overview=full&geometries=geojson&steps=true`;
 
-        const osrmResponse = await fetch(osrmUrl);
-        if (osrmResponse.ok) {
-            const osrmData = await osrmResponse.json();
-            if (osrmData.routes && osrmData.routes.length > 0) {
-                const route = osrmData.routes[0];
-                // Map OSRM steps to our format (simplified)
-                const steps = route.legs?.[0]?.steps?.map((s: any) => ({
-                    distance: s.distance,
-                    duration: s.duration,
-                    instruction: s.maneuver?.type, // Simplified
-                    type: 0,
-                    name: s.name,
-                    way_points: s.maneuver?.location
-                })) || [];
+            const osrmResponse = await fetch(osrmUrl);
+            if (osrmResponse.ok) {
+                const osrmData = await osrmResponse.json();
+                if (osrmData.routes && osrmData.routes.length > 0) {
+                    const route = osrmData.routes[0];
+                    const steps = route.legs?.[0]?.steps?.map((s: any) => ({
+                        distance: s.distance,
+                        duration: s.duration,
+                        instruction: s.maneuver?.type,
+                        type: 0,
+                        name: s.name,
+                        way_points: s.maneuver?.location || [0, 0]
+                    })) || [];
 
-                return {
-                    geometry: route.geometry,
-                    distance: route.distance,
-                    duration: route.duration,
-                    steps
-                };
+                    return {
+                        geometry: route.geometry,
+                        distance: route.distance,
+                        duration: route.duration,
+                        steps
+                    };
+                }
             }
+        } else {
+            // For walking, if ORS fails, return null to use straight-line fallback
+            console.warn('[Routing] OpenRouteService failed for walking. Check API key configuration.');
         }
 
-        console.warn('[Routing] OSRM also failed, using straight-line fallback');
         return null;
 
     } catch (error) {

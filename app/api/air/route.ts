@@ -81,10 +81,8 @@ async function logApi(endpoint: string, provider: string, status: number, latenc
 
         prisma.apiLog.create({
             data: { endpoint, provider, status, latencyMs: latency, cached },
-        }).catch((e) => {
-            if (process.env.NODE_ENV === 'development') {
-                console.warn('Failed to log API call:', e.message);
-            }
+        }).catch(() => {
+            // Silently fail
         });
     } catch (e) {
         // Ignore initiation errors

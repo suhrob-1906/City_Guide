@@ -78,15 +78,6 @@ export default function HomePage() {
                     </motion.div>
                 ))}
             </motion.div>
-
-            <motion.footer
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 1, duration: 0.5 }}
-                className="mt-16 text-center text-sm text-gray-500"
-            >
-                <p>{t('sources.title')}: Open-Meteo, NOAA SWPC, OpenWeather, OpenStreetMap</p>
-            </motion.footer>
         </div>
     );
 }

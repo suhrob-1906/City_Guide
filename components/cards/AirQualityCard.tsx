@@ -24,7 +24,7 @@ export default function AirQualityCard({ city }: { city: string }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const { t } = useLanguage();
-    const refreshTick = useAutoRefresh(600000); // 10 minutes
+    const { tick } = useAutoRefresh(60000); // 1 minute
 
     useEffect(() => {
         async function fetchData() {
@@ -55,7 +55,7 @@ export default function AirQualityCard({ city }: { city: string }) {
             }
         }
         fetchData();
-    }, [city, t, refreshTick]);
+    }, [city, t, tick]);
 
     const getLocalizedLabel = (label: string) => {
         const labelMap: Record<string, string> = {

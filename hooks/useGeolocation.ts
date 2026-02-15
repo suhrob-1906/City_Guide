@@ -12,6 +12,7 @@ interface GeolocationState {
 interface UseGeolocationReturn extends GeolocationState {
     requestLocation: () => Promise<void>;
     clearError: () => void;
+    stopWatching: () => void;
 }
 
 export function useGeolocation(): UseGeolocationReturn {
@@ -138,9 +139,18 @@ export function useGeolocation(): UseGeolocationReturn {
         setState(prev => ({ ...prev, error: null }));
     }, []);
 
+    const stopWatching = useCallback(() => {
+        if (watchId.current !== null) {
+            navigator.geolocation.clearWatch(watchId.current);
+            watchId.current = null;
+        }
+        setState(prev => ({ ...prev, location: null, isLoading: false }));
+    }, []);
+
     return {
         ...state,
         requestLocation,
         clearError,
+        stopWatching,
     };
 }

@@ -25,7 +25,7 @@ export default function WeatherCard({ city }: { city: string }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
     const { t } = useLanguage();
-    const refreshTick = useAutoRefresh(600000); // 10 minutes
+    const { tick } = useAutoRefresh(60000); // 1 minute
 
     useEffect(() => {
         async function fetchData() {
@@ -42,7 +42,7 @@ export default function WeatherCard({ city }: { city: string }) {
             }
         }
         fetchData();
-    }, [city, refreshTick]);
+    }, [city, tick]);
 
     if (loading) {
         return (
