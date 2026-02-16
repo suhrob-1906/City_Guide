@@ -130,10 +130,12 @@ export async function fetchPois(
             fetchedAt: new Date().toISOString(),
         };
     } catch (error: any) {
-        if (error.name === 'AbortError') {
-            throw new Error('Overpass API request timed out after 30 seconds');
-        }
         console.error('[Overpass] Error:', error.message);
-        throw new Error(`Failed to fetch POI data: ${error.message}`);
+        // Return empty collection instead of throwing, so the UI doesn't break
+        return {
+            type: 'FeatureCollection',
+            features: [],
+            fetchedAt: new Date().toISOString(),
+        };
     }
 }

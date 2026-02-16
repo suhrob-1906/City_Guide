@@ -4,11 +4,11 @@ const ORS_API_KEY = process.env.NEXT_PUBLIC_ORS_API_KEY || process.env.NEXT_PUBL
 const TIMEOUT_MS = 30000; // 30 seconds
 
 export async function POST(req: NextRequest) {
-    if (!ORS_API_KEY) {
-        console.error('[ORS API] API key not configured.');
+    if (!ORS_API_KEY || ORS_API_KEY.startsWith('ey')) {
+        console.error('[ORS API] Invalid or missing API key.');
         return NextResponse.json({
-            error: 'Routing service not configured.'
-        }, { status: 500 });
+            error: 'Routing service not configured correctly.'
+        }, { status: 401 }); // Return 401 to trigger client fallback
     }
 
     try {

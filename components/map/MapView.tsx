@@ -355,6 +355,7 @@ export default function MapView({ city }: { city: City }) {
 
       if (result) {
         // Update popup with distance/time from result
+        const isStraightLine = result.steps.length === 0;
         popup.setHTML(`
             <div class="p-2">
                <div class="font-bold text-sm mb-1">📍 ${t('map.customDestination')}</div>
@@ -362,9 +363,12 @@ export default function MapView({ city }: { city: City }) {
                   ${transportMode === 'walking' ? '🚶' : '🚗'} ${(result.distance / 1000).toFixed(2)} km
                   <br>
                   ⏱️ ${Math.round(result.duration / 60)} min
+                  ${isStraightLine ? '<br><span class="text-xs text-orange-500">(Straight line estimate)</span>' : ''}
                </div>
             </div>
         `);
+      } else {
+        popup.setHTML(`<div class="p-2 text-sm text-red-500">❌ ${t('map.errorRouting')}</div>`);
       }
     };
 

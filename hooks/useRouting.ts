@@ -104,52 +104,55 @@ export function useRouting() {
                         properties: { mode }
                     }]
                 } as RouteData,
+            } as RouteData,
                 distance: result.distance,
-                duration: result.duration
-            };
+                    duration: result.duration,
+                        steps: result.steps
+        };
 
-        } catch (err) {
-            console.error('[useRouting] Critical Error:', err);
-            setError(t('map.errorRouting'));
+    } catch (err) {
+        console.error('[useRouting] Critical Error:', err);
+        setError(t('map.errorRouting'));
 
-            // Absolute last resort fallback
-            const fallback = calculateStraightLine(start, end);
-            setRoute({
+        // Absolute last resort fallback
+        const fallback = calculateStraightLine(start, end);
+        setRoute({
+            type: 'FeatureCollection',
+            features: [{
+                type: 'Feature',
+                geometry: fallback.geometry,
+                properties: { mode }
+            }]
+        });
+        setDistance(fallback.distance);
+        setDuration(fallback.duration);
+
+        return {
+            route: {
                 type: 'FeatureCollection',
                 features: [{
                     type: 'Feature',
                     geometry: fallback.geometry,
                     properties: { mode }
                 }]
-            });
-            setDistance(fallback.distance);
-            setDuration(fallback.duration);
+            } as RouteData,
+            distance: fallback.distance,
+            duration: fallback.duration,
+            steps: []
+        };
+    } finally {
+        setIsLoading(false);
+    }
+}, [t]);
 
-            return {
-                route: {
-                    type: 'FeatureCollection',
-                    features: [{
-                        type: 'Feature',
-                        geometry: fallback.geometry,
-                        properties: { mode }
-                    }]
-                } as RouteData,
-                distance: fallback.distance,
-                duration: fallback.duration
-            };
-        } finally {
-            setIsLoading(false);
-        }
-    }, [t]);
-
-    return {
-        route,
-        steps,
-        distance,
-        duration,
-        isLoading,
-        error,
-        calculateRoute,
-        resetRoute
-    };
+return {
+    route,
+    steps,
+    distance,
+    duration,
+    isLoading,
+    error,
+    calculateRoute,
+    resetRoute
+};
 }
