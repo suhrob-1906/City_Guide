@@ -231,59 +231,24 @@ export async function getRoute(options: RouteOptions): Promise<RouteResult | nul
                     console.warn('[Routing] Direct ORS call error:', e);
                 }
             }
+        } // End of isKeyInvalid check
 
-            // 3. For WALKING: Try OSRM Walking as fallback (project-osrm.org)
-            if (profile === 'foot-walking') {
-                console.log('[Routing] ORS failed. Trying OSRM Walking fallback...');
-                const osrmUrl = `https://router.project-osrm.org/route/v1/foot/${start[0]},${start[1]};${end[0]},${end[1]}?overview=full&geometries=geojson&steps=true`;
+        // 3. For WALKING: Try OSRM Walking as fallback (project-osrm.org)
+        if (profile === 'foot-walking') {
+            console.log('[Routing] ORS failed. Trying OSRM Walking fallback...');
+            const osrmUrl = `https://router.project-osrm.org/route/v1/foot/${start[0]},${start[1]};${end[0]},${end[1]}?overview=full&geometries=geojson&steps=true`;
 
-                try {
-                    const osrmResponse = await fetch(osrmUrl);
-                    if (osrmResponse.ok) {
-                        const osrmData = await osrmResponse.json();
-                        if (osrmData.routes && osrmData.routes.length > 0) {
-                            console.log('[Routing] ✓ OSRM Walking succeeded');
-                            const route = osrmData.routes[0];
-                            const steps = route.legs?.[0]?.steps?.map((s: any) => ({
-                                distance: s.distance,
-                                duration: s.duration,
-                                instruction: s.maneuver?.type, // Raw OSRM instruction
-                                type: 0,
-                                name: s.name,
-                                way_points: s.maneuver?.location || [0, 0]
-                            })) || [];
-
-                            return {
-                                geometry: route.geometry,
-                                distance: route.distance,
-                                duration: route.duration,
-                                steps
-                            };
-                        }
-                    }
-                } catch (e) {
-                    console.warn('[Routing] OSRM Walking failed:', e);
-                }
-
-                console.warn('[Routing] All walking providers failed. Will use straight line.');
-            }
-
-            // 3. For DRIVING ONLY: Fallback to OSRM
-            if (profile === 'driving-car') {
-                console.warn('[Routing] OpenRouteService failed for driving, trying OSRM fallback...');
-
-                const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${start[0]},${start[1]};${end[0]},${end[1]}?overview=full&geometries=geojson&steps=true`;
-
+            try {
                 const osrmResponse = await fetch(osrmUrl);
                 if (osrmResponse.ok) {
                     const osrmData = await osrmResponse.json();
                     if (osrmData.routes && osrmData.routes.length > 0) {
-                        console.log('[Routing] ✓ OSRM succeeded');
+                        console.log('[Routing] ✓ OSRM Walking succeeded');
                         const route = osrmData.routes[0];
                         const steps = route.legs?.[0]?.steps?.map((s: any) => ({
                             distance: s.distance,
                             duration: s.duration,
-                            instruction: s.maneuver?.type,
+                            instruction: s.maneuver?.type, // Raw OSRM instruction
                             type: 0,
                             name: s.name,
                             way_points: s.maneuver?.location || [0, 0]
@@ -297,53 +262,89 @@ export async function getRoute(options: RouteOptions): Promise<RouteResult | nul
                         };
                     }
                 }
+            } catch (e) {
+                console.warn('[Routing] OSRM Walking failed:', e);
             }
 
-            console.warn('[Routing] All routing services failed. Returning null to trigger straight-line fallback.');
-            return null;
-
-        } catch (error) {
-            console.error('[Routing] Request failed:', error);
-            return null;
+            console.warn('[Routing] All walking providers failed. Will use straight line.');
         }
+
+        // 3. For DRIVING ONLY: Fallback to OSRM
+        if (profile === 'driving-car') {
+            console.warn('[Routing] OpenRouteService failed for driving, trying OSRM fallback...');
+
+            const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${start[0]},${start[1]};${end[0]},${end[1]}?overview=full&geometries=geojson&steps=true`;
+
+            const osrmResponse = await fetch(osrmUrl);
+            if (osrmResponse.ok) {
+                const osrmData = await osrmResponse.json();
+                if (osrmData.routes && osrmData.routes.length > 0) {
+                    console.log('[Routing] ✓ OSRM succeeded');
+                    const route = osrmData.routes[0];
+                    const steps = route.legs?.[0]?.steps?.map((s: any) => ({
+                        distance: s.distance,
+                        duration: s.duration,
+                        instruction: s.maneuver?.type,
+                        type: 0,
+                        name: s.name,
+                        way_points: s.maneuver?.location || [0, 0]
+                    })) || [];
+
+                    return {
+                        geometry: route.geometry,
+                        distance: route.distance,
+                        duration: route.duration,
+                        steps
+                    };
+                }
+            }
+        }
+
+        console.warn('[Routing] All routing services failed. Returning null to trigger straight-line fallback.');
+        return null;
+
+    } catch (error) {
+        console.error('[Routing] Request failed:', error);
+        return null;
     }
+}
 
 /**
  * Calculate straight-line distance and estimated walking time as fallback
  */
 export function calculateStraightLine(
-        start: [number, number],
-        end: [number, number]
-    ): RouteResult {
-        const [startLon, startLat] = start;
-        const [endLon, endLat] = end;
+    start: [number, number],
+    end: [number, number]
+): RouteResult {
+    const [startLon, startLat] = start;
+    const [endLon, endLat] = end;
 
-        // Haversine formula
-        const R = 6371000; // Earth's radius in meters
-        const dLat = ((endLat - startLat) * Math.PI) / 180;
-        const dLon = ((endLon - startLon) * Math.PI) / 180;
-        const a =
-            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos((startLat * Math.PI) / 180) *
-            Math.cos((endLat * Math.PI) / 180) *
-            Math.sin(dLon / 2) *
-            Math.sin(dLon / 2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        const distance = R * c;
+    // Haversine formula
+    const R = 6371000; // Earth's radius in meters
+    const dLat = ((endLat - startLat) * Math.PI) / 180;
+    const dLon = ((endLon - startLon) * Math.PI) / 180;
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos((startLat * Math.PI) / 180) *
+        Math.cos((endLat * Math.PI) / 180) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const distance = R * c;
 
-        // Estimate walking time (average speed: 5 km/h = 1.39 m/s)
-        const walkingSpeed = 1.39; // m/s
-        const duration = distance / walkingSpeed;
+    // Estimate walking time (average speed: 5 km/h = 1.39 m/s)
+    const walkingSpeed = 1.39; // m/s
+    const duration = distance / walkingSpeed;
 
-        console.log('[Routing] ⚠ Using straight-line fallback');
+    console.log('[Routing] ⚠ Using straight-line fallback');
 
-        return {
-            geometry: {
-                type: 'LineString',
-                coordinates: [start, end],
-            },
-            distance,
-            duration,
-            steps: []
-        };
-    }
+    return {
+        geometry: {
+            type: 'LineString',
+            coordinates: [start, end],
+        },
+        distance,
+        duration,
+        steps: []
+    };
+}
