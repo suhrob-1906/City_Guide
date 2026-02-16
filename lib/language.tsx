@@ -164,6 +164,8 @@ const translations = {
         'map.locationEnabled': 'Location Enabled',
         'map.locationDenied': 'Location Denied',
         'map.locationUnavailable': 'Location Unavailable',
+        'map.calculatingRoute': 'Calculating route',
+        'map.customDestination': 'Selected Destination',
 
         // Popular Places
         'guide.title': 'Popular Places',
@@ -367,6 +369,8 @@ const translations = {
         'map.locationEnabled': 'Геолокация включена',
         'map.locationDenied': 'Доступ запрещен',
         'map.locationUnavailable': 'Геолокация недоступна',
+        'map.calculatingRoute': 'Вычисление маршрута',
+        'map.customDestination': 'Выбранная точка',
 
         // Popular Places
         'guide.title': 'Популярные места в городе',

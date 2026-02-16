@@ -285,10 +285,79 @@ export default function MapView({ city }: { city: City }) {
     mapInstance.on('mouseenter', 'poi-layer', onMouseEnter);
     mapInstance.on('mouseleave', 'poi-layer', onMouseLeave);
 
+    // Handle missing images by loading a default marker
+    mapInstance.on('styleimagemissing', (e) => {
+      const id = e.id;
+      if (!mapInstance.hasImage(id)) {
+        mapInstance.loadImage('/marker-15.svg', (error, image) => {
+          if (!error && image) {
+            if (!mapInstance.hasImage(id)) {
+              mapInstance.addImage(id, image);
+            }
+          }
+        });
+      }
+    });
+
+    // Handle click on map background (not on a POI)
+    const handleMapClick = async (e: any) => {
+      // Ignore if clicking on a POI (handled by other listener)
+      const features = mapInstance.queryRenderedFeatures(e.point, { layers: ['poi-layer'] });
+      if (features.length > 0) return;
+
+      if (!userLocation) {
+        // Optionally show a toast here: "Enable location to route"
+        new maplibregl.Popup()
+          .setLngLat(e.lngLat)
+          .setHTML(`<div class="p-2 text-sm">📍 ${t('map.enableLocation')}</div>`)
+          .addTo(mapInstance);
+        return;
+      }
+
+      const dest = e.lngLat;
+      const destCoords: [number, number] = [dest.lng, dest.lat];
+
+      // Remove existing temp marker
+      const existingMarker = document.getElementById('temp-dest-marker');
+      if (existingMarker) existingMarker.remove();
+
+      // Add temporary destination marker
+      const el = document.createElement('div');
+      el.id = 'temp-dest-marker';
+      el.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="red" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>';
+      new maplibregl.Marker({ element: el })
+        .setLngLat(dest)
+        .addTo(mapInstance);
+
+      // Show popup indicating routing is happening
+      const popup = new maplibregl.Popup()
+        .setLngLat(dest)
+        .setHTML(`<div class="p-2 text-sm font-medium">🚶 ${t('map.calculatingRoute')}...</div>`)
+        .addTo(mapInstance);
+
+      await calculateRoute(userLocation, destCoords, transportMode);
+
+      // Update popup with distance/time
+      popup.setHTML(`
+          <div class="p-2">
+             <div class="font-bold text-sm mb-1">📍 ${t('map.customDestination')}</div>
+             <div class="text-xs text-gray-600">
+                ${transportMode === 'walking' ? '🚶' : '🚗'} ${(routeDistance / 1000).toFixed(2)} km
+                <br>
+                ⏱️ ${Math.round(duration / 60)} min
+             </div>
+          </div>
+      `);
+    };
+
+    mapInstance.on('click', handleMapClick);
+
     return () => {
       mapInstance.off('click', 'poi-layer', handleClick);
+      mapInstance.off('click', handleMapClick);
       mapInstance.off('mouseenter', 'poi-layer', onMouseEnter);
       mapInstance.off('mouseleave', 'poi-layer', onMouseLeave);
+      mapInstance.off('styleimagemissing', () => { });
     };
   }, [isMapReady, userLocation, transportMode, calculateRoute, map]);
 

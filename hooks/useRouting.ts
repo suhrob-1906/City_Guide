@@ -42,8 +42,6 @@ export function useRouting() {
             let result: RouteResult | null = null;
 
             if (mode === 'driving') {
-                // Use OSRM public API for driving (Demo server)
-                // Note: In production, this should likely be proxied or use a paid key if heavy usage
                 const coords = `${start[0]},${start[1]};${end[0]},${end[1]}`;
                 const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson&steps=true`;
 
@@ -61,21 +59,30 @@ export function useRouting() {
                     };
                 }
             } else {
-                // Walking: Use our internal fetcher which tries ORS -> OSRM Walking -> Straight Line
-                result = await getRoute({
-                    start,
-                    end,
-                    profile: 'foot-walking',
-                });
+                try {
+                    // Try server-side routing logic (ORS -> GraphHopper -> OSRM)
+                    result = await getRoute({
+                        start,
+                        end,
+                        profile: 'foot-walking',
+                    });
+                } catch (e) {
+                    console.warn('[useRouting] getRoute failed, falling back to straight line', e);
+                    // result remains null, enforcing fallback below
+                }
             }
 
             if (!result) {
-                // Final fallback if everything fails
-                console.warn('[useRouting] All routing services failed, using straight line.');
-                result = calculateStraightLine(start, end);
+                console.warn('[useRouting] All providers failed. Using straight line fallback.');
+                const sl = calculateStraightLine(start, end);
+                result = {
+                    geometry: sl.geometry,
+                    distance: sl.distance,
+                    duration: sl.duration,
+                    steps: [] // No steps for straight line
+                };
             }
 
-            // Update state
             setRoute({
                 type: 'FeatureCollection',
                 features: [{
@@ -89,10 +96,10 @@ export function useRouting() {
             setDuration(result.duration);
 
         } catch (err) {
-            console.error('[useRouting] Error:', err);
+            console.error('[useRouting] Critical Error:', err);
             setError(t('map.errorRouting'));
 
-            // Even on error, try straight line as last resort so user isn't stranded
+            // Absolute last resort fallback
             const fallback = calculateStraightLine(start, end);
             setRoute({
                 type: 'FeatureCollection',
@@ -104,7 +111,6 @@ export function useRouting() {
             });
             setDistance(fallback.distance);
             setDuration(fallback.duration);
-
         } finally {
             setIsLoading(false);
         }
