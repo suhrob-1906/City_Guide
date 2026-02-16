@@ -260,23 +260,44 @@ export default function MapView({ city }: { city: City }) {
         coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
       }
 
+      // Default name fallback
+      const poiName = props.name || t(`map.${props.type}`) || t('map.customDestination');
+      let routeInfo = '';
+
       // Calculate route immediately on click
       if (userLocation) {
-        // Show loading indicator in popup or console
         console.log('Calculating route to clicked POI...');
         setDestination(coordinates as [number, number]);
-        await calculateRoute(userLocation, coordinates as [number, number], transportMode);
+
+        // Use the RETURNED value, not state (which is stale in this closure)
+        const result = await calculateRoute(userLocation, coordinates as [number, number], transportMode);
+
+        if (result) {
+          const distKm = (result.distance / 1000).toFixed(2);
+          const durMin = Math.round(result.duration / 60);
+          routeInfo = `
+                <div class="mt-2 pt-2 border-t border-gray-100">
+                    <p class="text-sm text-gray-600 font-medium flex items-center gap-1">
+                        ${transportMode === 'walking' ? '🚶' : '🚗'} ${t('map.distance')}: ${distKm} ${t('nav.kilometers')}
+                    </p>
+                    <p class="text-sm text-gray-600 font-medium flex items-center gap-1">
+                        ⏱️ ${durMin} min
+                    </p>
+                </div>
+            `;
+        }
       }
 
       new maplibregl.Popup()
         .setLngLat(coordinates)
         .setHTML(`
           <div class="p-2 min-w-[200px]">
-            <h3 class="font-bold text-lg mb-1">${props.name || 'POI'}</h3>
-            <p class="text-sm text-gray-600 mb-2">${props.amenity || props.shop || props.tourism || ''}</p>
+            <h3 class="font-bold text-lg mb-1 leading-tight">${poiName}</h3>
+            <p class="text-sm text-gray-500 mb-2">${props.amenity ? t(`map.${props.amenity}`) : ''}</p>
             <div class="text-xs text-blue-600 font-medium">
-              ${userLocation ? '🕒 Calculating route...' : '⚠️ Enable location for route'}
+              ${userLocation ? '' : t('map.noLocation')}
             </div>
+            ${routeInfo}
           </div>
         `)
         .addTo(mapInstance);

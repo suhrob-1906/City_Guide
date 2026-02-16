@@ -263,11 +263,43 @@ export async function getRoute(options: RouteOptions): Promise<RouteResult | nul
                     }
                 }
             } catch (e) {
-                console.warn('[Routing] OSRM Walking failed:', e);
+                console.warn('[Routing] Primary OSRM Walking failed:', e);
             }
 
+            // 3b. Secondary OSRM Fallback (routing.openstreetmap.de)
+            // Sometimes project-osrm is busy/rate-limited
+            console.log('[Routing] Trying Secondary OSRM (DE)...');
+            const altOsrmUrl = `https://routing.openstreetmap.de/routed-foot/route/v1/foot/${start[0]},${start[1]};${end[0]},${end[1]}?overview=full&geometries=geojson&steps=true`;
+            try {
+                const altResponse = await fetch(altOsrmUrl);
+                if (altResponse.ok) {
+                    const altData = await altResponse.json();
+                    if (altData.routes && altData.routes.length > 0) {
+                        console.log('[Routing] ✓ Secondary OSRM succeeded');
+                        const route = altData.routes[0];
+                        const altSteps = route.legs?.[0]?.steps?.map((s: any) => ({
+                            distance: s.distance,
+                            duration: s.duration,
+                            instruction: s.maneuver?.type,
+                            type: 0,
+                            name: s.name,
+                            way_points: s.maneuver?.location || [0, 0]
+                        })) || [];
+
+                        return {
+                            geometry: route.geometry,
+                            distance: route.distance,
+                            duration: route.duration,
+                            steps: altSteps
+                        };
+                    }
+                }
+            } catch (e) {
+                console.warn('[Routing] Secondary OSRM failed:', e);
+            }
             console.warn('[Routing] All walking providers failed. Will use straight line.');
         }
+
 
         // 3. For DRIVING ONLY: Fallback to OSRM
         if (profile === 'driving-car') {
