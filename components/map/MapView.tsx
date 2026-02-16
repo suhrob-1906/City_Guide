@@ -22,6 +22,7 @@ export default function MapView({ city }: { city: City }) {
   // State
   const [selectedLayer, setSelectedLayer] = useState(POI_LAYERS[0].id);
   const [transportMode, setTransportMode] = useState<'driving' | 'walking'>('walking');
+  const [destination, setDestination] = useState<[number, number] | null>(null);
   const [isAudioEnabled, setIsAudioEnabled] = useState(false);
   const [showNavOverlay, setShowNavOverlay] = useState(false);
   const [navInstruction, setNavInstruction] = useState<string>('');
@@ -180,6 +181,13 @@ export default function MapView({ city }: { city: City }) {
     }
   }, [userLocation, steps, isAudioEnabled, lastSpokenIndex, language, t, speak, localizeInstruction]);
 
+  // Re-calculate route when transport mode changes
+  useEffect(() => {
+    if (userLocation && destination) {
+      calculateRoute(userLocation, destination, transportMode);
+    }
+  }, [transportMode, destination, userLocation, calculateRoute]);
+
   // Find nearest POI and calculate route
   const findNearest = useCallback(async () => {
     if (!userLocation || !pois || pois.features.length === 0) {
@@ -203,6 +211,7 @@ export default function MapView({ city }: { city: City }) {
     });
 
     if (nearest && map.current) {
+      setDestination(nearest.geometry.coordinates);
       await calculateRoute(userLocation, nearest.geometry.coordinates, transportMode);
 
       // Re-check map.current after async operation
@@ -255,6 +264,7 @@ export default function MapView({ city }: { city: City }) {
       if (userLocation) {
         // Show loading indicator in popup or console
         console.log('Calculating route to clicked POI...');
+        setDestination(coordinates as [number, number]);
         await calculateRoute(userLocation, coordinates as [number, number], transportMode);
       }
 
@@ -351,6 +361,7 @@ export default function MapView({ city }: { city: City }) {
         .setHTML(`<div class="p-2 text-sm font-medium">🚶 ${t('map.calculatingRoute')}...</div>`)
         .addTo(mapInstance);
 
+      setDestination(destCoords);
       const result = await calculateRoute(userLocation, destCoords, transportMode);
 
       if (result) {
