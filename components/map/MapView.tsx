@@ -355,7 +355,7 @@ export default function MapView({ city }: { city: City }) {
 
       if (result) {
         // Update popup with distance/time from result
-        const isStraightLine = result.steps.length === 0;
+        const isStraightLine = (result.steps || []).length === 0;
         popup.setHTML(`
             <div class="p-2">
                <div class="font-bold text-sm mb-1">📍 ${t('map.customDestination')}</div>
