@@ -5,6 +5,7 @@ import { getCityBySlug } from '@/config/cities';
 import WeatherCard from '@/components/cards/WeatherCard';
 import KpCard from '@/components/cards/KpCard';
 import AirQualityCard from '@/components/cards/AirQualityCard';
+import TourGuideCard from '@/components/cards/TourGuideCard';
 import MapView from '@/components/map/MapView';
 import { motion } from 'framer-motion';
 import { ArrowLeft } from 'lucide-react';
@@ -66,6 +67,15 @@ export default function CityPage() {
                     <motion.div variants={{ hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } }}>
                         <AirQualityCard city={city.slug} />
                     </motion.div>
+                </motion.div>
+
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.35 }}
+                    className="mb-8"
+                >
+                    <TourGuideCard city={city} />
                 </motion.div>
 
                 <motion.div

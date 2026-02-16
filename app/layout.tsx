@@ -3,7 +3,13 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import ClientLayout from './ClientLayout';
 
-const inter = Inter({ subsets: ['latin', 'cyrillic'] });
+const inter = Inter({
+    subsets: ['latin', 'cyrillic'],
+    weight: ['400', '500', '600', '700'],
+    display: 'swap',
+    preload: true,
+    variable: '--font-inter',
+});
 
 export const metadata: Metadata = {
     title: 'Uzbek City Helper',

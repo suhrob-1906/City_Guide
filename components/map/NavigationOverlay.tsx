@@ -1,5 +1,7 @@
 import React from 'react';
-import { ArrowRight, ArrowLeft, ArrowUp, RotateCw, MapPin, Navigation } from 'lucide-react';
+import { ArrowRight, ArrowLeft, ArrowUp, RotateCw, MapPin } from 'lucide-react';
+import { useLanguage } from '@/lib/language';
+import { translateInstruction } from '@/lib/navigationTranslations';
 
 interface NavigationOverlayProps {
     instruction: string;
@@ -15,12 +17,17 @@ export const NavigationOverlay: React.FC<NavigationOverlayProps> = ({
     type,
     isVisible
 }) => {
+    const { language } = useLanguage();
+
     if (!isVisible) return null;
+
+    // Translate instruction to current language
+    const translatedInstruction = translateInstruction(instruction, language);
 
     // Helper to get icon based on type/text
     const getIcon = () => {
         // Simple heuristic based on text if type not reliable
-        const text = instruction.toLowerCase();
+        const text = translatedInstruction.toLowerCase();
         if (text.includes('left') || text.includes('налево')) return <ArrowLeft className="w-10 h-10 text-white" />;
         if (text.includes('right') || text.includes('направо')) return <ArrowRight className="w-10 h-10 text-white" />;
         if (text.includes('u-turn') || text.includes('разворот')) return <RotateCw className="w-10 h-10 text-white" />;
@@ -40,7 +47,7 @@ export const NavigationOverlay: React.FC<NavigationOverlayProps> = ({
                         {distance < 1000 ? `${Math.round(distance)} м` : `${(distance / 1000).toFixed(1)} км`}
                     </div>
                     <div className="text-sm sm:text-base font-medium text-blue-100 truncate leading-tight">
-                        {instruction}
+                        {translatedInstruction}
                     </div>
                 </div>
             </div>

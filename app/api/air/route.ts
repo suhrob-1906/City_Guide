@@ -79,12 +79,12 @@ async function logApi(endpoint: string, provider: string, status: number, latenc
     try {
         if (process.env.NEXT_PHASE === 'phase-production-build') return;
 
-        prisma.apiLog.create({
+        await prisma.apiLog.create({
             data: { endpoint, provider, status, latencyMs: latency, cached },
         }).catch(() => {
-            // Silently fail
+            // Silently fail if database is unavailable
         });
     } catch (e) {
-        // Ignore initiation errors
+        // Ignore all database errors
     }
 }

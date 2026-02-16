@@ -165,6 +165,21 @@ const translations = {
         'map.locationDenied': 'Location Denied',
         'map.locationUnavailable': 'Location Unavailable',
 
+        // Popular Places
+        'guide.title': 'Popular Places',
+        'guide.subtitle': 'Must-visit locations in the city',
+        'guide.park': 'Park',
+        'guide.mall': 'Shopping Mall',
+        'guide.monument': 'Monument',
+        'guide.museum': 'Museum',
+        'guide.attraction': 'Attraction',
+        'guide.square': 'Square',
+        'guide.building': 'Building',
+        'guide.found': 'Featured',
+        'guide.places': 'places',
+        'guide.viewOnMap': 'View on Map',
+        'guide.noPlaces': 'No popular places available',
+
         // Navigation (Dynamic)
         'nav.in': 'In',
         'nav.meters': 'meters',
@@ -352,6 +367,21 @@ const translations = {
         'map.locationEnabled': 'Геолокация включена',
         'map.locationDenied': 'Доступ запрещен',
         'map.locationUnavailable': 'Геолокация недоступна',
+
+        // Popular Places
+        'guide.title': 'Популярные места в городе',
+        'guide.subtitle': 'Обязательные к посещению локации',
+        'guide.park': 'Парк',
+        'guide.mall': 'Торговый центр',
+        'guide.monument': 'Памятник',
+        'guide.museum': 'Музей',
+        'guide.attraction': 'Достопримечательность',
+        'guide.square': 'Площадь',
+        'guide.building': 'Здание',
+        'guide.found': 'Избранных',
+        'guide.places': 'мест',
+        'guide.viewOnMap': 'Показать на карте',
+        'guide.noPlaces': 'Популярные места недоступны',
 
         // Navigation (Dynamic)
         'nav.in': 'Через',

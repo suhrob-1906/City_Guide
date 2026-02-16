@@ -55,6 +55,53 @@ export interface RouteResult {
 // API Key is now handled server-side in /api/route
 
 /**
+ * Get route from GraphHopper API as fallback
+ */
+async function getGraphHopperRoute(options: RouteOptions): Promise<RouteResult | null> {
+    const { start, end, profile } = options;
+    const ghProfile = profile === 'foot-walking' ? 'foot' : 'car';
+
+    try {
+        const url = `https://graphhopper.com/api/1/route?point=${start[1]},${start[0]}&point=${end[1]},${end[0]}&profile=${ghProfile}&locale=en&instructions=true&calc_points=true&points_encoded=false`;
+
+        const response = await fetch(url);
+        if (!response.ok) {
+            console.warn('[GraphHopper] API request failed:', response.status);
+            return null;
+        }
+
+        const data = await response.json();
+        if (data.paths && data.paths.length > 0) {
+            const path = data.paths[0];
+            const steps = path.instructions?.map((inst: any) => ({
+                distance: inst.distance,
+                duration: inst.time / 1000, // convert ms to seconds
+                instruction: inst.text,
+                type: inst.sign,
+                name: inst.street_name || '',
+                way_points: inst.interval?.[0] !== undefined
+                    ? path.points.coordinates[inst.interval[0]] as [number, number]
+                    : [0, 0]
+            })) || [];
+
+            return {
+                geometry: {
+                    type: 'LineString',
+                    coordinates: path.points.coordinates,
+                },
+                distance: path.distance,
+                duration: path.time / 1000,
+                steps,
+            };
+        }
+        return null;
+    } catch (error) {
+        console.error('[GraphHopper] Request failed:', error);
+        return null;
+    }
+}
+
+/**
  * Get pedestrian or driving route from OpenRouteService
  * For walking: Uses ORS foot-walking profile which respects sidewalks and pedestrian paths
  * For driving: Falls back to OSRM if ORS fails
@@ -64,6 +111,7 @@ export async function getRoute(options: RouteOptions): Promise<RouteResult | nul
 
     try {
         // 1. Try OpenRouteService (via internal proxy)
+        console.log(`[Routing] Attempting ${profile} route via OpenRouteService...`);
         const response = await fetch('/api/route', {
             method: 'POST',
             headers: {
@@ -80,6 +128,7 @@ export async function getRoute(options: RouteOptions): Promise<RouteResult | nul
         if (response.ok) {
             const data: RouteResponse = await response.json();
             if (data && data.features && data.features.length > 0) {
+                console.log('[Routing] ✓ OpenRouteService succeeded');
                 const feature = data.features[0];
                 const rawSteps = feature.properties.segments?.[0]?.steps || [];
                 // ORS V2 returns way_points as [startIndex, endIndex] indices into geometry
@@ -111,10 +160,23 @@ export async function getRoute(options: RouteOptions): Promise<RouteResult | nul
                     steps,
                 };
             }
+        } else {
+            const errorText = await response.text();
+            console.warn(`[Routing] OpenRouteService failed with status ${response.status}:`, errorText);
         }
 
-        // 2. For DRIVING ONLY: Fallback to OSRM
-        // For WALKING: Do NOT use OSRM as it routes along car roads, not pedestrian paths
+        // 2. For WALKING: Try GraphHopper as fallback before straight line
+        if (profile === 'foot-walking') {
+            console.log('[Routing] Trying GraphHopper fallback for walking...');
+            const ghResult = await getGraphHopperRoute(options);
+            if (ghResult) {
+                console.log('[Routing] ✓ GraphHopper succeeded');
+                return ghResult;
+            }
+            console.warn('[Routing] GraphHopper also failed for walking. Will use straight line.');
+        }
+
+        // 3. For DRIVING ONLY: Fallback to OSRM
         if (profile === 'driving-car') {
             console.warn('[Routing] OpenRouteService failed for driving, trying OSRM fallback...');
 
@@ -124,6 +186,7 @@ export async function getRoute(options: RouteOptions): Promise<RouteResult | nul
             if (osrmResponse.ok) {
                 const osrmData = await osrmResponse.json();
                 if (osrmData.routes && osrmData.routes.length > 0) {
+                    console.log('[Routing] ✓ OSRM succeeded');
                     const route = osrmData.routes[0];
                     const steps = route.legs?.[0]?.steps?.map((s: any) => ({
                         distance: s.distance,
@@ -142,11 +205,9 @@ export async function getRoute(options: RouteOptions): Promise<RouteResult | nul
                     };
                 }
             }
-        } else {
-            // For walking, if ORS fails, return null to use straight-line fallback
-            console.warn('[Routing] OpenRouteService failed for walking. Check API key configuration.');
         }
 
+        console.warn('[Routing] All routing services failed. Returning null to trigger straight-line fallback.');
         return null;
 
     } catch (error) {
@@ -181,6 +242,8 @@ export function calculateStraightLine(
     // Estimate walking time (average speed: 5 km/h = 1.39 m/s)
     const walkingSpeed = 1.39; // m/s
     const duration = distance / walkingSpeed;
+
+    console.log('[Routing] ⚠ Using straight-line fallback');
 
     return {
         geometry: {
