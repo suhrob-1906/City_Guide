@@ -351,19 +351,21 @@ export default function MapView({ city }: { city: City }) {
         .setHTML(`<div class="p-2 text-sm font-medium">🚶 ${t('map.calculatingRoute')}...</div>`)
         .addTo(mapInstance);
 
-      await calculateRoute(userLocation, destCoords, transportMode);
+      const result = await calculateRoute(userLocation, destCoords, transportMode);
 
-      // Update popup with distance/time
-      popup.setHTML(`
-          <div class="p-2">
-             <div class="font-bold text-sm mb-1">📍 ${t('map.customDestination')}</div>
-             <div class="text-xs text-gray-600">
-                ${transportMode === 'walking' ? '🚶' : '🚗'} ${(routeDistance / 1000).toFixed(2)} km
-                <br>
-                ⏱️ ${Math.round(duration / 60)} min
-             </div>
-          </div>
-      `);
+      if (result) {
+        // Update popup with distance/time from result
+        popup.setHTML(`
+            <div class="p-2">
+               <div class="font-bold text-sm mb-1">📍 ${t('map.customDestination')}</div>
+               <div class="text-xs text-gray-600">
+                  ${transportMode === 'walking' ? '🚶' : '🚗'} ${(result.distance / 1000).toFixed(2)} km
+                  <br>
+                  ⏱️ ${Math.round(result.duration / 60)} min
+               </div>
+            </div>
+        `);
+      }
     };
 
     mapInstance.on('click', handleMapClick);

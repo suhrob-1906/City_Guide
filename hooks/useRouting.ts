@@ -95,6 +95,19 @@ export function useRouting() {
             setDistance(result.distance);
             setDuration(result.duration);
 
+            return {
+                route: {
+                    type: 'FeatureCollection',
+                    features: [{
+                        type: 'Feature',
+                        geometry: result.geometry,
+                        properties: { mode }
+                    }]
+                } as RouteData,
+                distance: result.distance,
+                duration: result.duration
+            };
+
         } catch (err) {
             console.error('[useRouting] Critical Error:', err);
             setError(t('map.errorRouting'));
@@ -111,6 +124,19 @@ export function useRouting() {
             });
             setDistance(fallback.distance);
             setDuration(fallback.duration);
+
+            return {
+                route: {
+                    type: 'FeatureCollection',
+                    features: [{
+                        type: 'Feature',
+                        geometry: fallback.geometry,
+                        properties: { mode }
+                    }]
+                } as RouteData,
+                distance: fallback.distance,
+                duration: fallback.duration
+            };
         } finally {
             setIsLoading(false);
         }

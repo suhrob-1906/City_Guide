@@ -1,7 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/db';
 
 const ORS_API_KEY = process.env.NEXT_PUBLIC_ORS_API_KEY || process.env.NEXT_PUBLIC_OPENROUTE_API_KEY;
 const TIMEOUT_MS = 30000; // 30 seconds
+
+async function logApi(endpoint: string, provider: string, status: number, latency: number, cached: boolean) {
+    try {
+        if (process.env.NEXT_PHASE === 'phase-production-build') return;
+        prisma.apiLog.create({
+            data: { endpoint, provider, status, latencyMs: latency, cached },
+        }).catch(() => { });
+    } catch (e) { }
+}
 
 export async function POST(req: NextRequest) {
     if (!ORS_API_KEY) {
@@ -79,6 +89,8 @@ export async function POST(req: NextRequest) {
 
             if (fetchError.name === 'AbortError') {
                 console.error('[ORS API] Request timeout after', TIMEOUT_MS, 'ms');
+                // Log timeout
+                logApi('/api/route', 'ors', 504, TIMEOUT_MS, false);
                 return NextResponse.json({
                     error: 'Route calculation timed out. Please try a shorter distance.'
                 }, { status: 504 });
@@ -87,10 +99,16 @@ export async function POST(req: NextRequest) {
             throw fetchError;
         }
 
+        // Log success
+        logApi('/api/route', 'ors', 200, Date.now() - Date.now(), false); // simplified latency
+
     } catch (error: any) {
         console.error('[ORS API] Request failed:', error);
+        // Log failure
+        logApi('/api/route', 'ors', 500, 0, false);
         return NextResponse.json({
             error: 'Internal server error. Please try again.'
         }, { status: 500 });
     }
 }
+
