@@ -38,7 +38,7 @@ async function logApi(endpoint: string, provider: string, status: number, latenc
         // Skip logging during build time or if explicitly disabled
         if (process.env.NEXT_PHASE === 'phase-production-build') return;
 
-        await prisma.apiLog.create({
+        prisma.apiLog.create({
             data: { endpoint, provider, status, latencyMs: latency, cached },
         }).catch(() => {
             // Silently fail if DB is offline
