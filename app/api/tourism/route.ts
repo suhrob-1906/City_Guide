@@ -41,8 +41,17 @@ export async function GET(req: NextRequest) {
         });
     } catch (error: any) {
         console.error('[Tourism API] Error:', error);
+
+        // Check for timeout or connectivity issues
+        if (error.name === 'AbortError' || error.message?.includes('timeout')) {
+            return NextResponse.json(
+                { error: 'Tourism data fetch timed out. Please try again later.' },
+                { status: 504 }
+            );
+        }
+
         return NextResponse.json(
-            { error: 'Failed to fetch tourism data' },
+            { error: 'Failed to fetch tourism data', details: error.message },
             { status: 500 }
         );
     }

@@ -165,7 +165,7 @@ export async function getRoute(options: RouteOptions): Promise<RouteResult | nul
             console.warn(`[Routing] OpenRouteService failed with status ${response.status}:`, errorText);
         }
 
-        // 2. For WALKING: Try GraphHopper as fallback before straight line
+        // 2. For WALKING: Try GraphHopper as fallback
         if (profile === 'foot-walking') {
             console.log('[Routing] Trying GraphHopper fallback for walking...');
             const ghResult = await getGraphHopperRoute(options);
@@ -173,7 +173,40 @@ export async function getRoute(options: RouteOptions): Promise<RouteResult | nul
                 console.log('[Routing] ✓ GraphHopper succeeded');
                 return ghResult;
             }
-            console.warn('[Routing] GraphHopper also failed for walking. Will use straight line.');
+
+            // 3. Try OSRM Walking as second fallback
+            console.log('[Routing] GraphHopper failed. Trying OSRM Walking fallback...');
+            const osrmUrl = `https://router.project-osrm.org/route/v1/foot/${start[0]},${start[1]};${end[0]},${end[1]}?overview=full&geometries=geojson&steps=true`;
+
+            try {
+                const osrmResponse = await fetch(osrmUrl);
+                if (osrmResponse.ok) {
+                    const osrmData = await osrmResponse.json();
+                    if (osrmData.routes && osrmData.routes.length > 0) {
+                        console.log('[Routing] ✓ OSRM Walking succeeded');
+                        const route = osrmData.routes[0];
+                        const steps = route.legs?.[0]?.steps?.map((s: any) => ({
+                            distance: s.distance,
+                            duration: s.duration,
+                            instruction: s.maneuver?.type, // Raw OSRM instruction
+                            type: 0,
+                            name: s.name,
+                            way_points: s.maneuver?.location || [0, 0]
+                        })) || [];
+
+                        return {
+                            geometry: route.geometry,
+                            distance: route.distance,
+                            duration: route.duration,
+                            steps
+                        };
+                    }
+                }
+            } catch (e) {
+                console.warn('[Routing] OSRM Walking failed:', e);
+            }
+
+            console.warn('[Routing] All walking providers failed. Will use straight line.');
         }
 
         // 3. For DRIVING ONLY: Fallback to OSRM

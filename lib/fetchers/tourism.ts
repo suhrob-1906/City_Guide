@@ -62,6 +62,9 @@ export async function getTourismPOIs(
         out center;
     `;
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+
     try {
         const response = await fetch('https://overpass-api.de/api/interpreter', {
             method: 'POST',
@@ -69,7 +72,10 @@ export async function getTourismPOIs(
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
             body: `data=${encodeURIComponent(query)}`,
+            signal: controller.signal,
         });
+
+        clearTimeout(timeoutId);
 
         if (!response.ok) {
             throw new Error(`Overpass API error: ${response.status}`);

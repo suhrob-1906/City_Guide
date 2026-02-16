@@ -121,15 +121,12 @@ async function logApi(endpoint: string, provider: string, status: number, latenc
     try {
         if (process.env.NEXT_PHASE === 'phase-production-build') return;
 
-        // Fire and forget, don't await to avoid slowing down response
-        prisma.apiLog.create({
+        await prisma.apiLog.create({
             data: { endpoint, provider, status, latencyMs: latency, cached },
         }).catch((e) => {
             // Silently fail if DB is offline
-            console.warn('[POI API] Failed to log API call (DB offline)');
         });
     } catch (e) {
         // Completely ignore any logging errors
-        console.warn('[POI API] Logging system unavailable');
     }
 }

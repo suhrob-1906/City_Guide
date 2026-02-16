@@ -175,10 +175,10 @@ const translations = {
         'guide.attraction': 'Attraction',
         'guide.square': 'Square',
         'guide.building': 'Building',
-        'guide.found': 'Featured',
+        'guide.found': 'Found',
         'guide.places': 'places',
         'guide.viewOnMap': 'View on Map',
-        'guide.noPlaces': 'No popular places available',
+        'guide.noPlaces': 'No popular places available for this city',
 
         // Navigation (Dynamic)
         'nav.in': 'In',
@@ -378,10 +378,10 @@ const translations = {
         'guide.attraction': 'Достопримечательность',
         'guide.square': 'Площадь',
         'guide.building': 'Здание',
-        'guide.found': 'Избранных',
+        'guide.found': 'Найдено',
         'guide.places': 'мест',
         'guide.viewOnMap': 'Показать на карте',
-        'guide.noPlaces': 'Популярные места недоступны',
+        'guide.noPlaces': 'Нет популярных мест для этого города',
 
         // Navigation (Dynamic)
         'nav.in': 'Через',
