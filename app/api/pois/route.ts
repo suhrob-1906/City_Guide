@@ -112,7 +112,7 @@ export async function GET(req: NextRequest) {
 
         return NextResponse.json({
             error: 'Failed to fetch POI data',
-            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+            details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
         }, { status: 500 });
     }
 }
@@ -121,12 +121,14 @@ async function logApi(endpoint: string, provider: string, status: number, latenc
     try {
         if (process.env.NEXT_PHASE === 'phase-production-build') return;
 
-        await prisma.apiLog.create({
+        // Use a detached promise to avoid awaiting DB writes
+        // This effectively makes it "fire and forget" but with error catching
+        prisma.apiLog.create({
             data: { endpoint, provider, status, latencyMs: latency, cached },
         }).catch((e) => {
-            // Silently fail if DB is offline
+            // Silently ignore DB errors
         });
     } catch (e) {
-        // Completely ignore any logging errors
+        // Ignore initiation errors
     }
 }

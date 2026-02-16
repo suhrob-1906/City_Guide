@@ -165,17 +165,9 @@ export async function getRoute(options: RouteOptions): Promise<RouteResult | nul
             console.warn(`[Routing] OpenRouteService failed with status ${response.status}:`, errorText);
         }
 
-        // 2. For WALKING: Try GraphHopper as fallback
+        // 2. For WALKING: Try OSRM Walking as fallback
         if (profile === 'foot-walking') {
-            console.log('[Routing] Trying GraphHopper fallback for walking...');
-            const ghResult = await getGraphHopperRoute(options);
-            if (ghResult) {
-                console.log('[Routing] ✓ GraphHopper succeeded');
-                return ghResult;
-            }
-
-            // 3. Try OSRM Walking as second fallback
-            console.log('[Routing] GraphHopper failed. Trying OSRM Walking fallback...');
+            console.log('[Routing] ORS failed. Trying OSRM Walking fallback...');
             const osrmUrl = `https://router.project-osrm.org/route/v1/foot/${start[0]},${start[1]};${end[0]},${end[1]}?overview=full&geometries=geojson&steps=true`;
 
             try {

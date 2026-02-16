@@ -285,17 +285,33 @@ export default function MapView({ city }: { city: City }) {
     mapInstance.on('mouseenter', 'poi-layer', onMouseEnter);
     mapInstance.on('mouseleave', 'poi-layer', onMouseLeave);
 
-    // Handle missing images by loading a default marker
+    // Handle missing images by generating a fallback marker on the fly
     mapInstance.on('styleimagemissing', (e) => {
       const id = e.id;
       if (!mapInstance.hasImage(id)) {
-        mapInstance.loadImage('/marker-15.svg', (error, image) => {
-          if (!error && image) {
-            if (!mapInstance.hasImage(id)) {
-              mapInstance.addImage(id, image);
-            }
-          }
-        });
+        // Generate a blue dot marker using canvas
+        const width = 15;
+        const height = 15;
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.beginPath();
+          ctx.arc(width / 2, height / 2, width / 2 - 2, 0, 2 * Math.PI);
+          ctx.fillStyle = '#4285F4'; // Google Blue
+          ctx.fill();
+          ctx.strokeStyle = '#FFFFFF';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          const imageData = ctx.getImageData(0, 0, width, height);
+          mapInstance.addImage(id, {
+            width: width,
+            height: height,
+            data: imageData.data
+          });
+        }
       }
     });
 
