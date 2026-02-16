@@ -234,70 +234,58 @@ export async function getRoute(options: RouteOptions): Promise<RouteResult | nul
         } // End of isKeyInvalid check
 
         // 3. For WALKING: Try OSRM Walking as fallback (project-osrm.org)
+        // 3. For WALKING: Try OSRM Fallback Chain (Foot -> Bicycle -> Driving)
+        // Project-OSRM demo server is rate-limited, so we try multiple profiles to maximize success chance.
         if (profile === 'foot-walking') {
-            console.log('[Routing] ORS failed. Trying OSRM Walking fallback...');
-            const osrmUrl = `https://router.project-osrm.org/route/v1/foot/${start[0]},${start[1]};${end[0]},${end[1]}?overview=full&geometries=geojson&steps=true`;
+            const baseUrl = 'https://router.project-osrm.org/route/v1';
+            const profiles = ['foot', 'bicycle', 'driving'];
 
-            try {
-                const osrmResponse = await fetch(osrmUrl);
-                if (osrmResponse.ok) {
-                    const osrmData = await osrmResponse.json();
-                    if (osrmData.routes && osrmData.routes.length > 0) {
-                        console.log('[Routing] ✓ OSRM Walking succeeded');
-                        const route = osrmData.routes[0];
-                        const steps = route.legs?.[0]?.steps?.map((s: any) => ({
-                            distance: s.distance,
-                            duration: s.duration,
-                            instruction: s.maneuver?.type, // Raw OSRM instruction
-                            type: 0,
-                            name: s.name,
-                            way_points: s.maneuver?.location || [0, 0]
-                        })) || [];
+            for (const p of profiles) {
+                console.log(`[Routing] Trying OSRM fallback profile: ${p}...`);
+                try {
+                    const url = `${baseUrl}/${p}/${start[0]},${start[1]};${end[0]},${end[1]}?overview=full&geometries=geojson&steps=true`;
 
-                        return {
-                            geometry: route.geometry,
-                            distance: route.distance,
-                            duration: route.duration,
-                            steps
-                        };
+                    // Add a small delay/jitter to avoid hitting rate limits instantly if looping
+                    if (p !== 'foot') await new Promise(r => setTimeout(r, 500));
+
+                    const response = await fetch(url);
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.routes && data.routes.length > 0) {
+                            console.log(`[Routing] ✓ OSRM (${p}) succeeded`);
+                            const route = data.routes[0];
+                            const steps = route.legs?.[0]?.steps?.map((s: any) => ({
+                                distance: s.distance,
+                                duration: s.duration,
+                                instruction: s.maneuver?.type,
+                                type: 0,
+                                name: s.name,
+                                way_points: s.maneuver?.location || [0, 0]
+                            })) || [];
+
+                            // Adjust duration for walking if we used a faster profile
+                            let finalDuration = route.duration;
+                            const walkingSpeed = 1.4; // m/s
+                            if (p !== 'foot') {
+                                finalDuration = route.distance / walkingSpeed;
+                            }
+
+                            return {
+                                geometry: route.geometry,
+                                distance: route.distance,
+                                duration: finalDuration,
+                                steps
+                            };
+                        }
+                    } else if (response.status === 429) {
+                        console.warn(`[Routing] OSRM ${p} rate limited (429).`);
                     }
+                } catch (e) {
+                    console.warn(`[Routing] OSRM ${p} failed:`, e);
                 }
-            } catch (e) {
-                console.warn('[Routing] Primary OSRM Walking failed:', e);
             }
 
-            // 3b. Secondary OSRM Fallback (routing.openstreetmap.de)
-            // Sometimes project-osrm is busy/rate-limited
-            console.log('[Routing] Trying Secondary OSRM (DE)...');
-            const altOsrmUrl = `https://routing.openstreetmap.de/routed-foot/route/v1/foot/${start[0]},${start[1]};${end[0]},${end[1]}?overview=full&geometries=geojson&steps=true`;
-            try {
-                const altResponse = await fetch(altOsrmUrl);
-                if (altResponse.ok) {
-                    const altData = await altResponse.json();
-                    if (altData.routes && altData.routes.length > 0) {
-                        console.log('[Routing] ✓ Secondary OSRM succeeded');
-                        const route = altData.routes[0];
-                        const altSteps = route.legs?.[0]?.steps?.map((s: any) => ({
-                            distance: s.distance,
-                            duration: s.duration,
-                            instruction: s.maneuver?.type,
-                            type: 0,
-                            name: s.name,
-                            way_points: s.maneuver?.location || [0, 0]
-                        })) || [];
-
-                        return {
-                            geometry: route.geometry,
-                            distance: route.distance,
-                            duration: route.duration,
-                            steps: altSteps
-                        };
-                    }
-                }
-            } catch (e) {
-                console.warn('[Routing] Secondary OSRM failed:', e);
-            }
-            console.warn('[Routing] All walking providers failed. Will use straight line.');
+            console.warn('[Routing] All OSRM profiles failed. Will use straight line.');
         }
 
 
