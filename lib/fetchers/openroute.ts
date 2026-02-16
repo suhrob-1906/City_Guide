@@ -162,10 +162,70 @@ export async function getRoute(options: RouteOptions): Promise<RouteResult | nul
             }
         } else {
             const errorText = await response.text();
-            console.warn(`[Routing] OpenRouteService failed with status ${response.status}:`, errorText);
+            console.warn(`[Routing] OpenRouteService Proxy failed with status ${response.status}:`, errorText);
         }
 
-        // 2. For WALKING: Try OSRM Walking as fallback
+        // 2. Fallback: Try calling ORS DIRECTLY from client (bypass server proxy)
+        // This is useful if our server 500s but ORS is up.
+        console.log(`[Routing] Attempting direct client-side ORS call...`);
+        const apiKey = process.env.NEXT_PUBLIC_ORS_API_KEY || process.env.NEXT_PUBLIC_OPENROUTE_API_KEY;
+        if (apiKey) {
+            try {
+                const directResponse = await fetch(`https://api.openrouteservice.org/v2/directions/${profile}/geojson`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': apiKey,
+                    },
+                    body: JSON.stringify({
+                        coordinates: [start, end],
+                        instructions: true,
+                        maneuvers: true,
+                        language: language,
+                    })
+                });
+
+                if (directResponse.ok) {
+                    const data = await directResponse.json();
+                    if (data && data.features && data.features.length > 0) {
+                        console.log('[Routing] ✓ Direct ORS call succeeded');
+                        const feature = data.features[0];
+                        // ... (Process data same as before) ...
+                        // To avoid code duplication, we could extract this, but for now let's just return normalized
+                        const rawSteps = feature.properties.segments?.[0]?.steps || [];
+                        const steps = rawSteps.map((s: any) => {
+                            let point: [number, number] = [0, 0];
+                            if (s.way_points && Array.isArray(s.way_points) && s.way_points.length > 0) {
+                                const idx = s.way_points[0];
+                                if (feature.geometry.coordinates[idx]) {
+                                    point = feature.geometry.coordinates[idx] as [number, number];
+                                }
+                            }
+                            return {
+                                distance: s.distance,
+                                duration: s.duration,
+                                type: s.type,
+                                instruction: s.instruction,
+                                name: s.name,
+                                way_points: point
+                            };
+                        });
+                        return {
+                            geometry: { type: 'LineString', coordinates: feature.geometry.coordinates },
+                            distance: feature.properties.summary.distance,
+                            duration: feature.properties.summary.duration,
+                            steps,
+                        };
+                    }
+                } else {
+                    console.warn('[Routing] Direct ORS call failed:', directResponse.status);
+                }
+            } catch (e) {
+                console.warn('[Routing] Direct ORS call error:', e);
+            }
+        }
+
+        // 3. For WALKING: Try OSRM Walking as fallback
         if (profile === 'foot-walking') {
             console.log('[Routing] ORS failed. Trying OSRM Walking fallback...');
             const osrmUrl = `https://router.project-osrm.org/route/v1/foot/${start[0]},${start[1]};${end[0]},${end[1]}?overview=full&geometries=geojson&steps=true`;

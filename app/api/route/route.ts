@@ -1,23 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
 
 const ORS_API_KEY = process.env.NEXT_PUBLIC_ORS_API_KEY || process.env.NEXT_PUBLIC_OPENROUTE_API_KEY;
 const TIMEOUT_MS = 30000; // 30 seconds
 
-async function logApi(endpoint: string, provider: string, status: number, latency: number, cached: boolean) {
-    try {
-        if (process.env.NEXT_PHASE === 'phase-production-build') return;
-        prisma.apiLog.create({
-            data: { endpoint, provider, status, latencyMs: latency, cached },
-        }).catch(() => { });
-    } catch (e) { }
-}
-
 export async function POST(req: NextRequest) {
     if (!ORS_API_KEY) {
-        console.error('[ORS API] API key not configured. Set NEXT_PUBLIC_ORS_API_KEY in .env');
+        console.error('[ORS API] API key not configured.');
         return NextResponse.json({
-            error: 'Routing service not configured. Please contact administrator.'
+            error: 'Routing service not configured.'
         }, { status: 500 });
     }
 
@@ -26,25 +16,20 @@ export async function POST(req: NextRequest) {
         const { start, end, profile = 'foot-walking', language = 'en' } = body;
 
         // Validate coordinates
-        if (!start || !end || !Array.isArray(start) || !Array.isArray(end)) {
-            return NextResponse.json({ error: 'Invalid coordinates format' }, { status: 400 });
+        if (!start || !end || !Array.isArray(start) || !Array.isArray(end) || start.length !== 2 || end.length !== 2) {
+            return NextResponse.json({ error: 'Invalid coordinates' }, { status: 400 });
         }
 
-        if (start.length !== 2 || end.length !== 2) {
-            return NextResponse.json({ error: 'Coordinates must be [lon, lat]' }, { status: 400 });
-        }
-
-        // Validate profile
         const validProfiles = ['foot-walking', 'driving-car'];
         if (!validProfiles.includes(profile)) {
             return NextResponse.json({ error: 'Invalid routing profile' }, { status: 400 });
         }
 
-        // Create abort controller for timeout
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
         try {
+            console.log(`[ORS API] Proxying request to ${profile}`);
             const response = await fetch(
                 `https://api.openrouteservice.org/v2/directions/${profile}/geojson`,
                 {
@@ -67,17 +52,9 @@ export async function POST(req: NextRequest) {
 
             if (!response.ok) {
                 const errorText = await response.text();
-                console.error('[ORS API] External API error:', response.status, errorText);
-
-                // Return user-friendly error
-                if (response.status === 429) {
-                    return NextResponse.json({
-                        error: 'Too many requests. Please try again in a moment.'
-                    }, { status: 429 });
-                }
-
+                console.error('[ORS API] External error:', response.status, errorText);
                 return NextResponse.json({
-                    error: 'Unable to calculate route. Please try again.'
+                    error: 'External API Error'
                 }, { status: response.status });
             }
 
@@ -86,28 +63,16 @@ export async function POST(req: NextRequest) {
 
         } catch (fetchError: any) {
             clearTimeout(timeoutId);
-
             if (fetchError.name === 'AbortError') {
-                console.error('[ORS API] Request timeout after', TIMEOUT_MS, 'ms');
-                // Log timeout
-                logApi('/api/route', 'ors', 504, TIMEOUT_MS, false);
-                return NextResponse.json({
-                    error: 'Route calculation timed out. Please try a shorter distance.'
-                }, { status: 504 });
+                return NextResponse.json({ error: 'Timeout' }, { status: 504 });
             }
-
             throw fetchError;
         }
 
-        // Log success
-        logApi('/api/route', 'ors', 200, Date.now() - Date.now(), false); // simplified latency
-
     } catch (error: any) {
-        console.error('[ORS API] Request failed:', error);
-        // Log failure
-        logApi('/api/route', 'ors', 500, 0, false);
+        console.error('[ORS API] Internal error:', error);
         return NextResponse.json({
-            error: 'Internal server error. Please try again.'
+            error: 'Internal server error'
         }, { status: 500 });
     }
 }
