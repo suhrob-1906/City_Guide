@@ -36,11 +36,12 @@ export async function GET(req: NextRequest) {
     }
 
     const cacheKey = `pois:${city}:${type}`;
+    const refresh = req.nextUrl.searchParams.get('refresh') === 'true';
 
     try {
-        // Try to get from cache (non-blocking) - SKIP for scooters to show mock data
+        // Try to get from cache (non-blocking) - SKIP for scooters to show mock data or if refresh requested
         let cached = null;
-        if (type !== 'scooters') {
+        if (type !== 'scooters' && !refresh) {
             try {
                 cached = await cache.get(cacheKey);
                 if (cached) {
@@ -51,6 +52,8 @@ export async function GET(req: NextRequest) {
             } catch (cacheError) {
                 console.warn('[POI API] Cache get failed:', cacheError);
             }
+        } else if (refresh) {
+            console.log('[POI API] Cache refresh requested');
         }
 
         // Fetch fresh data
