@@ -63,17 +63,30 @@ export default function MapView({ city }: { city: City }) {
   useEffect(() => {
     if (!map.current || !isMapReady || !pois) return;
 
+    console.log('[MapView] Updating POIs:', {
+      featureCount: pois.features.length,
+      selectedLayer,
+      sampleFeature: pois.features[0]
+    });
+
     const source = map.current.getSource('pois') as maplibregl.GeoJSONSource;
     if (source) {
       source.setData(pois);
+      console.log('[MapView] POI data set to map source');
 
-      if (pois.features.length > 0) {
+      // Only auto-fit bounds for reasonable dataset sizes
+      if (pois.features.length > 0 && pois.features.length < 500) {
         const bounds = new maplibregl.LngLatBounds();
         pois.features.forEach(f => bounds.extend(f.geometry.coordinates as [number, number]));
         map.current.fitBounds(bounds, { padding: 50, maxZoom: 15 });
+        console.log('[MapView] Fitted bounds to POIs');
+      } else if (pois.features.length >= 500) {
+        console.log('[MapView] Too many POIs to auto-fit bounds, keeping current view');
       }
+    } else {
+      console.error('[MapView] POI source not found on map!');
     }
-  }, [pois, isMapReady, map]);
+  }, [pois, isMapReady, map, selectedLayer]);
 
   // Update route on map
   useEffect(() => {
