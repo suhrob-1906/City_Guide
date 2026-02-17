@@ -233,59 +233,64 @@ export async function getRoute(options: RouteOptions): Promise<RouteResult | nul
             }
         } // End of isKeyInvalid check
 
-        // 3. For WALKING: Try OSRM Walking as fallback (project-osrm.org)
-        // 3. For WALKING: Try OSRM Fallback Chain (Foot -> Bicycle -> Driving)
-        // Project-OSRM demo server is rate-limited, so we try multiple profiles to maximize success chance.
+        // 3. For WALKING: Advanced Fallback Strategy
         if (profile === 'foot-walking') {
+
+            // Strategy A: Try "OSRM DE" (routing.openstreetmap.de) - Dedicated Foot Routing
+            // User verified this works in Tashkent and provides better walking paths.
+            console.log('[Routing] Trying Priority Fallback: OSRM DE (Foot)...');
+            try {
+                const deUrl = `https://routing.openstreetmap.de/routed-foot/route/v1/foot/${start[0]},${start[1]};${end[0]},${end[1]}?overview=full&geometries=geojson&steps=true`;
+                const response = await fetch(deUrl);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.routes && data.routes.length > 0) {
+                        console.log('[Routing] ✓ OSRM DE (Foot) succeeded');
+                        const route = data.routes[0];
+                        return {
+                            geometry: route.geometry,
+                            distance: route.distance,
+                            duration: route.duration,
+                            steps: mapOsrmSteps(route.legs?.[0]?.steps)
+                        };
+                    }
+                }
+            } catch (e) {
+                console.warn('[Routing] OSRM DE failed:', e);
+            }
+
+            // Strategy B: Try "Project OSRM" (router.project-osrm.org) with Cascade
+            // If the specialized foot server fails, try the general demo server.
+            // We try 'foot' then 'bicycle' (closest to walking). We AVOID 'driving' to prevent dangerous walking suggestions.
             const baseUrl = 'https://router.project-osrm.org/route/v1';
-            const profiles = ['foot', 'bicycle', 'driving'];
+            const profiles = ['foot', 'bicycle'];
 
             for (const p of profiles) {
-                console.log(`[Routing] Trying OSRM fallback profile: ${p}...`);
+                console.log(`[Routing] Trying Backup: OSRM Org (${p})...`);
                 try {
                     const url = `${baseUrl}/${p}/${start[0]},${start[1]};${end[0]},${end[1]}?overview=full&geometries=geojson&steps=true`;
-
-                    // Add a small delay/jitter to avoid hitting rate limits instantly if looping
-                    if (p !== 'foot') await new Promise(r => setTimeout(r, 500));
+                    if (p !== 'foot') await new Promise(r => setTimeout(r, 500)); // Jitter
 
                     const response = await fetch(url);
                     if (response.ok) {
                         const data = await response.json();
                         if (data.routes && data.routes.length > 0) {
-                            console.log(`[Routing] ✓ OSRM (${p}) succeeded`);
+                            console.log(`[Routing] ✓ OSRM Org (${p}) succeeded`);
                             const route = data.routes[0];
-                            const steps = route.legs?.[0]?.steps?.map((s: any) => ({
-                                distance: s.distance,
-                                duration: s.duration,
-                                instruction: s.maneuver?.type,
-                                type: 0,
-                                name: s.name,
-                                way_points: s.maneuver?.location || [0, 0]
-                            })) || [];
-
-                            // Adjust duration for walking if we used a faster profile
-                            let finalDuration = route.duration;
-                            const walkingSpeed = 1.4; // m/s
-                            if (p !== 'foot') {
-                                finalDuration = route.distance / walkingSpeed;
-                            }
-
                             return {
                                 geometry: route.geometry,
                                 distance: route.distance,
-                                duration: finalDuration,
-                                steps
+                                duration: p === 'foot' ? route.duration : route.distance / 1.4, // Adjust speed for bike
+                                steps: mapOsrmSteps(route.legs?.[0]?.steps)
                             };
                         }
-                    } else if (response.status === 429) {
-                        console.warn(`[Routing] OSRM ${p} rate limited (429).`);
                     }
                 } catch (e) {
-                    console.warn(`[Routing] OSRM ${p} failed:`, e);
+                    console.warn(`[Routing] OSRM Org ${p} failed:`, e);
                 }
             }
 
-            console.warn('[Routing] All OSRM profiles failed. Will use straight line.');
+            console.warn('[Routing] All walking providers failed. Will use straight line.');
         }
 
 
@@ -367,4 +372,16 @@ export function calculateStraightLine(
         duration,
         steps: []
     };
+}
+
+// Helper to safely map OSRM steps to our format
+function mapOsrmSteps(steps: any[]) {
+    return steps?.map((s: any) => ({
+        distance: s.distance,
+        duration: s.duration,
+        instruction: s.maneuver?.type,
+        type: 0,
+        name: s.name,
+        way_points: s.maneuver?.location || [0, 0]
+    })) || [];
 }
