@@ -88,11 +88,14 @@ export function useMapSetup(containerRef: React.RefObject<HTMLDivElement>, city:
     };
 
     const setupLayers = (map: maplibregl.Map) => {
-        // Source for POIs
+        // Source for POIs with clustering enabled
         if (!map.getSource('pois')) {
             map.addSource('pois', {
                 type: 'geojson',
-                data: { type: 'FeatureCollection', features: [] }
+                data: { type: 'FeatureCollection', features: [] },
+                cluster: true,
+                clusterMaxZoom: 14, // Max zoom to cluster points on
+                clusterRadius: 50 // Radius of each cluster when clustering points
             });
         }
 
@@ -135,12 +138,57 @@ export function useMapSetup(containerRef: React.RefObject<HTMLDivElement>, city:
             });
         }
 
-        // 3. POI Markers (Symbol Layer)
+        // 3. Clusters (circles)
+        if (!map.getLayer('clusters')) {
+            map.addLayer({
+                id: 'clusters',
+                type: 'circle',
+                source: 'pois',
+                filter: ['has', 'point_count'],
+                paint: {
+                    'circle-color': [
+                        'step',
+                        ['get', 'point_count'],
+                        '#51bbd6', 20,
+                        '#f1f075', 100,
+                        '#f28cb1'
+                    ],
+                    'circle-radius': [
+                        'step',
+                        ['get', 'point_count'],
+                        20, 20,
+                        30, 100,
+                        40
+                    ]
+                }
+            });
+        }
+
+        // 4. Cluster count labels
+        if (!map.getLayer('cluster-count')) {
+            map.addLayer({
+                id: 'cluster-count',
+                type: 'symbol',
+                source: 'pois',
+                filter: ['has', 'point_count'],
+                layout: {
+                    'text-field': '{point_count_abbreviated}',
+                    'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
+                    'text-size': 14
+                },
+                paint: {
+                    'text-color': '#ffffff'
+                }
+            });
+        }
+
+        // 5. POI Markers (Symbol Layer) - only unclustered points
         if (!map.getLayer('poi-layer')) {
             map.addLayer({
                 id: 'poi-layer',
                 type: 'symbol',
                 source: 'pois',
+                filter: ['!', ['has', 'point_count']], // Only show unclustered points
                 layout: {
                     'icon-image': 'custom-pin',
                     'icon-size': 0.7,
@@ -162,12 +210,13 @@ export function useMapSetup(containerRef: React.RefObject<HTMLDivElement>, city:
             });
         }
 
-        // 4. POI Icons (Emoji overlay)
+        // 6. POI Icons (Emoji overlay) - only unclustered points
         if (!map.getLayer('poi-emoji')) {
             map.addLayer({
                 id: 'poi-emoji',
                 type: 'symbol',
                 source: 'pois',
+                filter: ['!', ['has', 'point_count']], // Only show unclustered points
                 layout: {
                     'text-field': ['get', 'icon'],
                     'text-size': 20,
