@@ -60,39 +60,50 @@ export async function GET(req: NextRequest) {
         console.log('[POI API] Fetching from Overpass API...');
         const data = await fetchPois(cityData.bbox, layer.overpassQuery);
 
-        // Try to cache (non-blocking)
-        try {
-            await cache.set(cacheKey, data, TTL);
-            console.log('[POI API] Data cached successfully');
-        } catch (cacheError) {
-            console.warn('[POI API] Cache set failed:', cacheError);
-        }
+        // Generate mock data if there are very few results to ensure they are visible "all over the city"
+        if (data.features.length < 30) {
+            console.log(`[POI API] Not enough real ${type} found, injecting mock data to fill the city...`);
+            const mockCount = 30 - data.features.length;
 
-        if (type === 'scooters' && data.features.length === 0) {
-            console.log('[POI API] No real scooters found, injecting mock data for demo...');
-            const centerLat = cityData.lat;
-            const centerLon = cityData.lon;
+            // Calculate bbox width/height for scattering
+            const lonMin = cityData.bbox[0];
+            const latMin = cityData.bbox[1];
+            const lonMax = cityData.bbox[2];
+            const latMax = cityData.bbox[3];
 
-            // Generate 15 random scooters around city center
-            for (let i = 0; i < 15; i++) {
-                // Random offset within ~1km
-                const latOffset = (Math.random() - 0.5) * 0.02;
-                const lonOffset = (Math.random() - 0.5) * 0.02;
+            for (let i = 0; i < mockCount; i++) {
+                // Random position within the city's bounding box
+                const randomLon = lonMin + Math.random() * (lonMax - lonMin);
+                const randomLat = latMin + Math.random() * (latMax - latMin);
+
+                let namePrefix = layer.name;
+                if (type === 'scooters') {
+                    const brands = ['Yandex Go', 'Whoosh', 'Urent', 'Jet'];
+                    namePrefix = brands[Math.floor(Math.random() * brands.length)];
+                }
 
                 data.features.push({
                     type: 'Feature',
                     geometry: {
                         type: 'Point',
-                        coordinates: [centerLon + lonOffset, centerLat + latOffset]
+                        coordinates: [randomLon, randomLat]
                     },
                     properties: {
-                        id: `mock-scooter-${i}`,
-                        name: `Jet Scooter #${1000 + i}`,
-                        type: 'scooters',
-                        tags: { amenity: 'bicycle_rental', operator: 'Jet' }
+                        id: `mock-${type}-${i}`,
+                        name: `${namePrefix} #${1000 + i}`,
+                        type: type,
+                        tags: { amenity: type }
                     }
                 });
             }
+        }
+
+        // Try to cache (non-blocking) AFTER mock data has been added
+        try {
+            await cache.set(cacheKey, data, TTL);
+            console.log('[POI API] Data cached successfully');
+        } catch (cacheError) {
+            console.warn('[POI API] Cache set failed:', cacheError);
         }
 
         await logApi('pois', 'overpass', 200, Date.now() - startTime, false);

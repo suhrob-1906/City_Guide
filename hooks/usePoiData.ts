@@ -10,12 +10,12 @@ export function usePoiData(citySlug: string, selectedLayerId: string) {
     const [rateLimitWait, setRateLimitWait] = useState(0);
     const { t } = useLanguage();
 
-    const fetchPois = useCallback(async () => {
+    const fetchPois = useCallback(async (forceRefresh = false) => {
         setIsLoadingPois(true);
         setPoiError(null);
 
         try {
-            const res = await fetch(`/api/pois?city=${citySlug}&type=${selectedLayerId}`);
+            const res = await fetch(`/api/pois?city=${citySlug}&type=${selectedLayerId}${forceRefresh ? '&refresh=true' : ''}`);
 
             if (res.status === 429) {
                 setPoiError(t('map.rateLimit'));
@@ -42,6 +42,7 @@ export function usePoiData(citySlug: string, selectedLayerId: string) {
                 ...f,
                 properties: {
                     ...f.properties,
+                    layerId: currentLayer?.id || selectedLayerId,
                     icon: currentLayer?.icon || '•',
                     color: currentLayer?.color || '#3b82f6'
                 }

@@ -144,6 +144,32 @@ export function useRouting() {
         }
     }, [t]);
 
+    const getRouteInfo = useCallback(async (
+        start: [number, number],
+        end: [number, number],
+        mode: 'walking' | 'driving'
+    ) => {
+        try {
+            if (mode === 'driving') {
+                const coords = `${start[0]},${start[1]};${end[0]},${end[1]}`;
+                const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${coords}?overview=false`;
+                const response = await fetch(osrmUrl);
+                const data = await response.json();
+                if (data.code === 'Ok' && data.routes?.[0]) {
+                    return { distance: data.routes[0].distance, duration: data.routes[0].duration };
+                }
+            } else {
+                const result = await getRoute({ start, end, profile: 'foot-walking' });
+                if (result) return { distance: result.distance, duration: result.duration };
+            }
+        } catch (e) {
+            // silent fail
+        }
+
+        // Fallback straight line
+        return calculateStraightLine(start, end);
+    }, []);
+
     return {
         route,
         steps,
@@ -152,6 +178,7 @@ export function useRouting() {
         isLoading,
         error,
         calculateRoute,
+        getRouteInfo,
         resetRoute
     };
 }

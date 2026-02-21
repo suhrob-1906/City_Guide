@@ -1,7 +1,7 @@
 import React from 'react';
 import { ArrowRight, ArrowLeft, ArrowUp, RotateCw, MapPin } from 'lucide-react';
 import { useLanguage } from '@/lib/language';
-import { translateInstruction } from '@/lib/navigationTranslations';
+import { translateInstruction, formatGuidebookInstruction } from '@/lib/navigationTranslations';
 
 interface NavigationOverlayProps {
     instruction: string;
@@ -21,13 +21,13 @@ export const NavigationOverlay: React.FC<NavigationOverlayProps> = ({
 
     if (!isVisible) return null;
 
-    // Translate instruction to current language
-    const translatedInstruction = translateInstruction(instruction, language);
+    // Get the formatted instruction that includes distance and text based on user locale
+    const formattedText = formatGuidebookInstruction(instruction, distance, language);
 
     // Helper to get icon based on type/text
     const getIcon = () => {
         // Simple heuristic based on text if type not reliable
-        const text = translatedInstruction.toLowerCase();
+        const text = formattedText.toLowerCase();
         if (text.includes('left') || text.includes('налево')) return <ArrowLeft className="w-10 h-10 text-white" />;
         if (text.includes('right') || text.includes('направо')) return <ArrowRight className="w-10 h-10 text-white" />;
         if (text.includes('u-turn') || text.includes('разворот')) return <RotateCw className="w-10 h-10 text-white" />;
@@ -43,11 +43,8 @@ export const NavigationOverlay: React.FC<NavigationOverlayProps> = ({
                     {getIcon()}
                 </div>
                 <div className="flex-1 min-w-0">
-                    <div className="text-2xl font-bold font-mono tracking-tight leading-none mb-0.5">
-                        {distance < 1000 ? `${Math.round(distance)} м` : `${(distance / 1000).toFixed(1)} км`}
-                    </div>
-                    <div className="text-sm sm:text-base font-medium text-blue-100 truncate leading-tight">
-                        {translatedInstruction}
+                    <div className="text-lg sm:text-xl font-bold text-blue-50 leading-tight">
+                        {formattedText}
                     </div>
                 </div>
             </div>

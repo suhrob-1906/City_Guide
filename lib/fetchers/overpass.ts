@@ -116,7 +116,9 @@ export async function fetchPois(
                 },
                 properties: {
                     id: `${el.type}/${el.id}`,
-                    name: el.tags?.name || el.tags?.['name:en'] || el.tags?.['name:ru'] || 'Unnamed',
+                    name: el.tags?.name || el.tags?.['name:en'] || el.tags?.['name:ru'] || '',
+                    nameEn: el.tags?.['name:en'] || el.tags?.name || '',
+                    nameRu: el.tags?.['name:ru'] || el.tags?.name || '',
                     type: query.split('=')[0],
                     tags: el.tags || {},
                 },

@@ -194,7 +194,7 @@ const translations = {
         'weather.rainExpected': 'Rain Expected',
         'weather.noRain': 'No Rain',
         'weather.hourly': 'Hourly Forecast',
-        'weather.daily': '10-Day Forecast',
+        'weather.daily': '7-Day Forecast',
         'weather.kmh': 'km/h',
 
         // Weather conditions
@@ -399,7 +399,7 @@ const translations = {
         'weather.rainExpected': 'Ожидается дождь',
         'weather.noRain': 'Без осадков',
         'weather.hourly': 'Почасовой прогноз',
-        'weather.daily': 'Прогноз на 10 дней',
+        'weather.daily': 'Прогноз на 7 дней',
         'weather.kmh': 'км/ч',
 
         // Weather conditions
