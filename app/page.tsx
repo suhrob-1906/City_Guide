@@ -17,7 +17,20 @@ export default function HomePage() {
                 transition={{ duration: 0.6 }}
                 className="text-center mb-12"
             >
-                <h1 className="text-6xl font-bold mb-4 bg-gradient-to-r from-blue-600 via-green-600 to-blue-500 bg-clip-text text-transparent">
+                <h1 className="text-6xl font-bold mb-4 bg-gradient-to-r from-blue-600 via-green-600 to-blue-500 bg-clip-text text-transparent flex items-center justify-center gap-4">
+                    <svg viewBox="0 0 512 512" className="w-16 h-16 drop-shadow-lg shrink-0">
+                        <defs>
+                            <linearGradient id="opt1-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#3b82f6" />
+                                <stop offset="100%" stop-color="#8b5cf6" />
+                            </linearGradient>
+                            <filter id="opt1-shadow" x="-20%" y="-20%" width="140%" height="140%">
+                                <feDropShadow dx="0" dy="16" stdDeviation="16" floodColor="#000000" floodOpacity="0.2" />
+                            </filter>
+                        </defs>
+                        <rect width="512" height="512" rx="128" fill="url(#opt1-grad)" />
+                        <path d="M256 112c-61.85 0-112 50.15-112 112 0 84 112 208 112 208s112-124 112-208c0-61.85-50.15-112-112-112zm0 160c-26.51 0-48-21.49-48-48s21.49-48 48-48 48 21.49 48 48-21.49 48-48 48z" fill="#ffffff" filter="url(#opt1-shadow)" />
+                    </svg>
                     {t('home.title')}
                 </h1>
                 <p className="text-xl text-gray-600 mb-2">
