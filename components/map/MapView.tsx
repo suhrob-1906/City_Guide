@@ -121,8 +121,18 @@ export default function MapView({ city }: { city: City }) {
       .addTo(map.current);
   }, [userLocation, map]);
 
-  // Localize navigation instruction
+  // Localize navigation instruction (used for inline MapView text and TTS)
   const localizeInstruction = useCallback((instruction: string, mode: 'walking' | 'driving' = 'walking'): string => {
+    if (language === 'en') {
+      const instrLower = String(instruction || '').toLowerCase().trim();
+      if (!instrLower) return mode === 'walking' ? 'Walk straight' : 'Drive straight';
+      if (instrLower === 'turn' || instrLower.includes('merge') || instrLower.includes('notification') || instrLower.includes('new name')) {
+        return mode === 'walking' ? 'Walk straight' : 'Drive straight';
+      }
+      // Pass through existing English if it looks valid
+      return instruction;
+    }
+
     const instrLower = String(instruction || '').toLowerCase().trim();
     if (!instrLower) return mode === 'walking' ? 'Идти прямо' : 'Ехать прямо';
 
@@ -152,7 +162,7 @@ export default function MapView({ city }: { city: City }) {
     if (instrLower.includes('notification') || instrLower.includes('new name')) return straight;
     if (instrLower === 'turn') return straight;
     return straight;
-  }, [t]);
+  }, [t, language]);
 
   // Navigation instructions
   useEffect(() => {
@@ -205,7 +215,9 @@ export default function MapView({ city }: { city: City }) {
         // Don't show "Направляйтесь к точке" as ongoing nav instruction
         if (localizedInstruction === t('nav.depart') || localizedInstruction === t('nav.fallback')) return;
 
-        setNavInstruction(localizedInstruction);
+        // Pass RAW instruction to NavigationOverlay. NavigationOverlay uses formatGuidebookInstruction
+        // internally, which handles both English and Russian mapping.
+        setNavInstruction(rawInstruction);
         setNavDistance(dist);
         setShowNavOverlay(true);
 
@@ -260,9 +272,9 @@ export default function MapView({ city }: { city: City }) {
       let distStr = '';
       if (stepLoc && userLocation) {
         const distM = calculateStraightLine(userLocation, stepLoc).distance;
-        distStr = distM < 1000
-          ? ` через ${Math.round(distM)} м`
-          : ` через ${(distM / 1000).toFixed(1)} км`;
+        distStr = language === 'en'
+          ? (distM < 1000 ? ` in ${Math.round(distM)} m` : ` in ${(distM / 1000).toFixed(1)} km`)
+          : (distM < 1000 ? ` через ${Math.round(distM)} м` : ` через ${(distM / 1000).toFixed(1)} км`);
       }
 
       setNavInstruction(`${localizedBase}${distStr}`);
